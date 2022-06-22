@@ -15,10 +15,11 @@
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	<PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\icon.png" Link="icon.png">
+    <None Include="..\icon.png">
       <PackagePath>\</PackagePath>
       <Pack>True</Pack>
     </None>
