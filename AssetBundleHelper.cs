@@ -115,11 +115,26 @@ namespace ArknightsResources.Utility
                 Match match;
                 if (info.Type == OperatorType.Skin)
                 {
-                    match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({info.ImageCodename})#([\d]*)(b?)(\[alpha\])?",
-                                          RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-                    if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[3].Value))
+                    //如果match匹配成功,那么说明这个文件不符合要求,返回false
+
+                    if (info.ImageCodename.Contains('#'))
                     {
-                        return false;
+                        //有的皮肤(如阿),具有两个皮肤,但只能以后面的'#(数字)'区分,所以这里进行了特殊处理
+                        match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({info.ImageCodename})(b?)(\[alpha\])?",
+                                          RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                        if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({info.ImageCodename})#([\d]*)(b?)(\[alpha\])?",
+                                          RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                        if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[3].Value))
+                        {
+                            return false;
+                        }
                     }
                 }
                 else
