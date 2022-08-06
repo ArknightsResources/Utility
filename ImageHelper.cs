@@ -10,7 +10,7 @@ namespace ArknightsResources.Utility
     /// <summary>
     /// 一个处理图片的类
     /// </summary>
-    public class ImageHelper
+    public static class ImageHelper
     {
         // 本类参考了AssetStudio项目来解码ETC1图片
         // AssetStudio项目地址:https://github.com/Perfare/AssetStudio
