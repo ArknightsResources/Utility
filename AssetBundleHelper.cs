@@ -3,11 +3,11 @@ using AssetStudio;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System;
 
 namespace ArknightsResources.Utility
 {
@@ -56,7 +56,7 @@ namespace ArknightsResources.Utility
         {
             Image<Bgra32> rgb = null;
             Image<Bgra32> alpha = null;
-            HandleAbPacksInternal(assetBundleFile, illustrationInfo, ref rgb, ref alpha);
+            GetIllustFromAbPacksInternal(assetBundleFile, illustrationInfo, ref rgb, ref alpha);
             return ImageHelper.ProcessImage(rgb, alpha);
         }
 
@@ -70,11 +70,22 @@ namespace ArknightsResources.Utility
         {
             Image<Bgra32> rgb = null;
             Image<Bgra32> alpha = null;
-            HandleAbPacksInternal(assetBundleFile, illustrationInfo, ref rgb, ref alpha);
+            GetIllustFromAbPacksInternal(assetBundleFile, illustrationInfo, ref rgb, ref alpha);
             return ImageHelper.ProcessImageReturnImage(rgb, alpha);
         }
 
-        private static void HandleAbPacksInternal(byte[] assetBundleFile, OperatorIllustrationInfo illustrationInfo, ref Image<Bgra32> rgb, ref Image<Bgra32> alpha)
+
+        //public static (byte[], byte[], byte[]) GetOperatorSpineResource(byte[] assetBundleFile, OperatorSpineInfo spineInfo)
+        //{
+
+        //}
+
+        private static void GetSpineResourcesFromAbPacksInternal(byte[] assetBundleFile, OperatorSpineInfo illustrationInfo)
+        {
+
+        }
+
+        private static void GetIllustFromAbPacksInternal(byte[] assetBundleFile, OperatorIllustrationInfo illustrationInfo, ref Image<Bgra32> rgb, ref Image<Bgra32> alpha)
         {
             using (MemoryStream stream = new MemoryStream(assetBundleFile))
             {
@@ -83,7 +94,7 @@ namespace ArknightsResources.Utility
                 assetsManager.LoadFile(".", reader);
                 IEnumerable<Texture2D> targets = from asset
                                                  in assetsManager.assetsFileList.FirstOrDefault().Objects
-                                                 where IsTexture2DMatch(asset, illustrationInfo)
+                                                 where IsTexture2DMatchOperatorImage(asset, illustrationInfo)
                                                  select (asset as Texture2D);
 
                 foreach (var item in targets)
@@ -100,7 +111,7 @@ namespace ArknightsResources.Utility
             }
         }
 
-        private static bool IsTexture2DMatch(AssetStudio.Object asset, OperatorIllustrationInfo info)
+        private static bool IsTexture2DMatchOperatorImage(AssetStudio.Object asset, OperatorIllustrationInfo info)
         {
             if (asset.type == ClassIDType.Texture2D)
             {
@@ -113,8 +124,6 @@ namespace ArknightsResources.Utility
                 Match match;
                 if (info.Type == OperatorType.Skin)
                 {
-                    //如果match匹配成功,那么说明这个文件不符合要求,返回false
-
                     if (info.ImageCodename.Contains('#'))
                     {
                         //有的皮肤(如阿),具有两个皮肤,但只能以后面的'#(数字)'区分,所以这里进行了特殊处理
@@ -127,6 +136,7 @@ namespace ArknightsResources.Utility
                     }
                     else
                     {
+                        //如果match匹配成功,那么说明这个文件不符合要求,返回false
                         match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({info.ImageCodename})#([\d]*)(b?)(\[alpha\])?",
                                           RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
                         if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[3].Value))
