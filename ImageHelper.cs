@@ -1,4 +1,8 @@
-﻿using SixLabors.ImageSharp;
+﻿#if NET6_0_OR_GREATER
+#pragma warning disable IDE0090
+#endif
+
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using System;
@@ -221,7 +225,7 @@ namespace ArknightsResources.Utility
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static unsafe void CopyBlockBuffer(int bx, int by, int w, int h, int bw, int bh, int[] buffer, byte[] imageData)
+        private static void CopyBlockBuffer(int bx, int by, int w, int h, int bw, int bh, int[] buffer, byte[] imageData)
         {
             Span<int> buf = buffer.AsSpan();
             int x = bw * bx;
@@ -229,7 +233,7 @@ namespace ArknightsResources.Utility
             int index = 0;
             for (int y = by * bh; index < buf.Length && y < h; index += bw, y++)
             {
-                var slice = buf.Slice(index, bw);
+                Span<int> slice = buf.Slice(index, bw);
                 int[] sliceArray = InternalArrayPools.Int32ArrayPool.Rent(slice.Length);
                 for (int i = 0; i < slice.Length; i++)
                 {

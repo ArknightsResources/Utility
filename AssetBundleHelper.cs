@@ -1,9 +1,14 @@
-﻿using ArknightsResources.Operators.Models;
+﻿#if NET6_0_OR_GREATER
+#pragma warning disable IDE0090
+#pragma warning disable IDE0063
+#endif
+
+using System;
+using ArknightsResources.Operators.Models;
 using AssetStudio;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
