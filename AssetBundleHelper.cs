@@ -13,7 +13,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System;
 
 namespace ArknightsResources.Utility
 {
@@ -64,31 +63,6 @@ namespace ArknightsResources.Utility
             Image<Bgra32> alpha = null;
             GetIllustFromAbPacksInternal(assetBundleFile, illustrationInfo, ref rgb, ref alpha);
             return ImageHelper.ProcessImage(rgb, alpha);
-        }
-
-        /// <summary>
-        /// 从指定的AssetBundle包中获取干员的立绘
-        /// </summary>
-        /// <param name="assetBundleFile">含有AssetBundle包内容的<seealso cref="byte"/>数组</param>
-        /// <param name="illustrationInfo">包含干员立绘信息的结构</param>
-        /// <returns>包含干员立绘的<seealso cref="Image{Bgra32}"/>对象</returns>
-        public static Image<Bgra32> GetOperatorIllustrationReturnImage(byte[] assetBundleFile, OperatorIllustrationInfo illustrationInfo)
-        {
-            Image<Bgra32> rgb = null;
-            Image<Bgra32> alpha = null;
-            GetIllustFromAbPacksInternal(assetBundleFile, illustrationInfo, ref rgb, ref alpha);
-            return ImageHelper.ProcessImageReturnImage(rgb, alpha);
-        }
-
-
-        //public static (byte[], byte[], byte[]) GetOperatorSpineResource(byte[] assetBundleFile, OperatorSpineInfo spineInfo)
-        //{
-
-        //}
-
-        private static void GetSpineResourcesFromAbPacksInternal(byte[] assetBundleFile, OperatorSpineInfo illustrationInfo)
-        {
-
         }
 
         private static void GetIllustFromAbPacksInternal(byte[] assetBundleFile, OperatorIllustrationInfo illustrationInfo, ref Image<Bgra32> rgb, ref Image<Bgra32> alpha)
