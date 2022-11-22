@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System;
 
 namespace ArknightsResources.Utility
 {
@@ -61,11 +62,36 @@ namespace ArknightsResources.Utility
         {
             Image<Bgra32> rgb = null;
             Image<Bgra32> alpha = null;
-            HandleAbPacksInternal(assetBundleFile, illustrationInfo, ref rgb, ref alpha);
+            GetIllustFromAbPacksInternal(assetBundleFile, illustrationInfo, ref rgb, ref alpha);
             return ImageHelper.ProcessImage(rgb, alpha);
         }
 
-        private static void HandleAbPacksInternal(byte[] assetBundleFile, OperatorIllustrationInfo illustrationInfo, ref Image<Bgra32> rgb, ref Image<Bgra32> alpha)
+        /// <summary>
+        /// 从指定的AssetBundle包中获取干员的立绘
+        /// </summary>
+        /// <param name="assetBundleFile">含有AssetBundle包内容的<seealso cref="byte"/>数组</param>
+        /// <param name="illustrationInfo">包含干员立绘信息的结构</param>
+        /// <returns>包含干员立绘的<seealso cref="Image{Bgra32}"/>对象</returns>
+        public static Image<Bgra32> GetOperatorIllustrationReturnImage(byte[] assetBundleFile, OperatorIllustrationInfo illustrationInfo)
+        {
+            Image<Bgra32> rgb = null;
+            Image<Bgra32> alpha = null;
+            GetIllustFromAbPacksInternal(assetBundleFile, illustrationInfo, ref rgb, ref alpha);
+            return ImageHelper.ProcessImageReturnImage(rgb, alpha);
+        }
+
+
+        //public static (byte[], byte[], byte[]) GetOperatorSpineResource(byte[] assetBundleFile, OperatorSpineInfo spineInfo)
+        //{
+
+        //}
+
+        private static void GetSpineResourcesFromAbPacksInternal(byte[] assetBundleFile, OperatorSpineInfo illustrationInfo)
+        {
+
+        }
+
+        private static void GetIllustFromAbPacksInternal(byte[] assetBundleFile, OperatorIllustrationInfo illustrationInfo, ref Image<Bgra32> rgb, ref Image<Bgra32> alpha)
         {
             using (MemoryStream stream = new MemoryStream(assetBundleFile))
             {
@@ -74,7 +100,7 @@ namespace ArknightsResources.Utility
                 assetsManager.LoadFile(".", reader);
                 IEnumerable<Texture2D> targets = from asset
                                                  in assetsManager.assetsFileList.FirstOrDefault().Objects
-                                                 where IsTexture2DMatch(asset, illustrationInfo)
+                                                 where IsTexture2DMatchOperatorImage(asset, illustrationInfo)
                                                  select (asset as Texture2D);
 
                 foreach (var item in targets)
@@ -91,7 +117,7 @@ namespace ArknightsResources.Utility
             }
         }
 
-        private static bool IsTexture2DMatch(AssetStudio.Object asset, OperatorIllustrationInfo info)
+        private static bool IsTexture2DMatchOperatorImage(AssetStudio.Object asset, OperatorIllustrationInfo info)
         {
             if (asset.type == ClassIDType.Texture2D)
             {
@@ -117,6 +143,7 @@ namespace ArknightsResources.Utility
                     }
                     else
                     {
+                        //如果match匹配成功,那么说明这个文件不符合要求,返回false
                         match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({info.ImageCodename})#([\d]*)(b?)(\[alpha\])?",
                                           RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
                         if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[3].Value))
