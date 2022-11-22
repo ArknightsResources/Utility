@@ -87,19 +87,6 @@ namespace ArknightsResources.Utility
             return stream.ToArray();
         }
 
-        /// <summary>
-        /// 处理两张图片(一张RGB,一张Alpha),并将它们合并为一张具有透明度的图片(以<seealso cref="Image{Bgra32}"/>对象返回)
-        /// </summary>
-        /// <param name="rgb">包含图片RGB通道信息的<seealso cref="Image{Bgra32}"/></param>
-        /// <param name="alpha">包含图片Alpha通道信息的<seealso cref="Image{Bgra32}"/></param>
-        /// <returns>包含图片信息的<seealso cref="Image{Bgra32}"/>对象</returns>
-        public static Image<Bgra32> ProcessImageReturnImage(Image<Bgra32> rgb, Image<Bgra32> alpha)
-        {
-            HandleImages(rgb, alpha);
-            alpha.Dispose();
-            return rgb;
-        }
-
         //TODO: Find a better way to process image
         private static void HandleImages(Image<Bgra32> rgb, Image<Bgra32> alpha)
         {

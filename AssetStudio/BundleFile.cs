@@ -1,4 +1,5 @@
-﻿using K4os.Compression.LZ4;
+﻿using ArknightsResources.Utility;
+using K4os.Compression.LZ4;
 using System.IO;
 using System.Linq;
 
@@ -300,19 +301,22 @@ namespace AssetStudio
                     case 2: //LZ4
                     case 3: //LZ4HC
                         {
+                            //NOTICE: Hacked here
+                            //BigArrayPool<byte>.Shared => InternalArrayPools.ByteArrayPool
+
                             var compressedSize = (int)blockInfo.compressedSize;
-                            var compressedBytes = BigArrayPool<byte>.Shared.Rent(compressedSize);
+                            var compressedBytes = InternalArrayPools.ByteArrayPool.Rent(compressedSize);
                             reader.Read(compressedBytes, 0, compressedSize);
                             var uncompressedSize = (int)blockInfo.uncompressedSize;
-                            var uncompressedBytes = BigArrayPool<byte>.Shared.Rent(uncompressedSize);
+                            var uncompressedBytes = InternalArrayPools.ByteArrayPool.Rent(uncompressedSize);
                             var numWrite = LZ4Codec.Decode(compressedBytes, 0, compressedSize, uncompressedBytes, 0, uncompressedSize);
                             if (numWrite != uncompressedSize)
                             {
                                 throw new IOException($"Lz4 decompression error, write {numWrite} bytes but expected {uncompressedSize} bytes");
                             }
                             blocksStream.Write(uncompressedBytes, 0, uncompressedSize);
-                            BigArrayPool<byte>.Shared.Return(compressedBytes);
-                            BigArrayPool<byte>.Shared.Return(uncompressedBytes);
+                            InternalArrayPools.ByteArrayPool.Return(compressedBytes);
+                            InternalArrayPools.ByteArrayPool.Return(uncompressedBytes);
                             break;
                         }
                 }

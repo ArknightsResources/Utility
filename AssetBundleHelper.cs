@@ -65,20 +65,6 @@ namespace ArknightsResources.Utility
             return ImageHelper.ProcessImage(rgb, alpha);
         }
 
-        /// <summary>
-        /// 从指定的AssetBundle包中获取干员的立绘
-        /// </summary>
-        /// <param name="assetBundleFile">含有AssetBundle包内容的<seealso cref="byte"/>数组</param>
-        /// <param name="illustrationInfo">包含干员立绘信息的结构</param>
-        /// <returns>包含干员立绘的<seealso cref="Image{Bgra32}"/>对象</returns>
-        public static Image<Bgra32> GetOperatorIllustrationReturnImage(byte[] assetBundleFile, OperatorIllustrationInfo illustrationInfo)
-        {
-            Image<Bgra32> rgb = null;
-            Image<Bgra32> alpha = null;
-            HandleAbPacksInternal(assetBundleFile, illustrationInfo, ref rgb, ref alpha);
-            return ImageHelper.ProcessImageReturnImage(rgb, alpha);
-        }
-
         private static void HandleAbPacksInternal(byte[] assetBundleFile, OperatorIllustrationInfo illustrationInfo, ref Image<Bgra32> rgb, ref Image<Bgra32> alpha)
         {
             using (MemoryStream stream = new MemoryStream(assetBundleFile))
@@ -118,8 +104,6 @@ namespace ArknightsResources.Utility
                 Match match;
                 if (info.Type == OperatorType.Skin)
                 {
-                    //如果match匹配成功,那么说明这个文件不符合要求,返回false
-
                     if (info.ImageCodename.Contains('#'))
                     {
                         //有的皮肤(如阿),具有两个皮肤,但只能以后面的'#(数字)'区分,所以这里进行了特殊处理
@@ -127,6 +111,7 @@ namespace ArknightsResources.Utility
                                           RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
                         if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
                         {
+                            //如果match匹配成功,那么说明这个文件不符合要求,返回false
                             return false;
                         }
                     }
@@ -136,6 +121,7 @@ namespace ArknightsResources.Utility
                                           RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
                         if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[3].Value))
                         {
+                            //如果match匹配成功,那么说明这个文件不符合要求,返回false
                             return false;
                         }
                     }
