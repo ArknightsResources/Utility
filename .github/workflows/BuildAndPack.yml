@@ -1,0 +1,34 @@
+name: Build and pack
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+env:
+  DOTNET_VERSION: '7.x' # The .NET SDK version to use
+
+jobs:
+  build:
+
+    name: Build and pack
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Add NuGet Source
+      run: dotnet nuget add source --username ArknightsResources --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/ArknightsResources/index.json"
+
+    - name: Install dependencies
+      run: dotnet restore
+
+    - name: Pack
+      run: dotnet pack --configuration Release --output nupkgs
+      
+    - name: Push to GitHub Packages
+      run: dotnet nuget push **\*.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source "github"
