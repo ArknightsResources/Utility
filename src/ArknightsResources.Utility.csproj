@@ -8,7 +8,7 @@
     <EnableNETAnalyzers>True</EnableNETAnalyzers>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Arknights;明日方舟</PackageTags>
-    <PackageProjectUrl>https://github.com/Baka632/ArknightsResources</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/ArknightsResources/Home</PackageProjectUrl>
     <Copyright>Copyright (c) 2022 Baka632</Copyright>
     <Description>Provides utilities for resource access.</Description>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
