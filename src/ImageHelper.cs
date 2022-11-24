@@ -1,5 +1,7 @@
 ﻿#if NET6_0_OR_GREATER
 #pragma warning disable IDE0090
+#elif NET7_0_OR_GREATER
+#pragma warning disable IDE0230
 #endif
 
 using SixLabors.ImageSharp;
