@@ -1,1 +1,1 @@
-# ArknightsResources.Utility
+# ArknightsResources - Utility
