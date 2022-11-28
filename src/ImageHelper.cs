@@ -1,8 +1,5 @@
-﻿#if NET6_0_OR_GREATER
-#pragma warning disable IDE0090
-#elif NET7_0_OR_GREATER
+﻿#pragma warning disable IDE0090
 #pragma warning disable IDE0230
-#endif
 
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -80,44 +77,23 @@ namespace ArknightsResources.Utility
         public static byte[] ProcessImage(Image<Bgra32> rgb, Image<Bgra32> alpha)
         {
             HandleImages(rgb, alpha);
-            var stream = new MemoryStream();
-            rgb.SaveAsPng(stream);
+            using (MemoryStream stream = new MemoryStream())
+            {
+                rgb.SaveAsPng(stream);
 
-            rgb.Dispose();
-            alpha.Dispose();
+                rgb.Dispose();
+                alpha.Dispose();
 
-            return stream.ToArray();
+                return stream.ToArray();
+            }
         }
 
-        //TODO: Find a better way to process image
         private static void HandleImages(Image<Bgra32> rgb, Image<Bgra32> alpha)
         {
-            //Bad implementation
-            Bgra32 transparent = SixLabors.ImageSharp.Color.Transparent;
             alpha.Mutate(x => x.Resize(rgb.Width, rgb.Height));
-            alpha.ProcessPixelRows(accessorA =>
-            {
-                Bgra32 black = new Bgra32(0, 0, 0, 255);
-                for (int yA = 0; yA < accessorA.Height; yA++)
-                {
-                    Span<Bgra32> pixelRowA = accessorA.GetRowSpan(yA);
-
-                    // pixelRow.Length has the same value as accessor.Width,
-                    // but using pixelRow.Length allows the JIT to optimize away bounds checks:
-                    for (int x = 0; x < pixelRowA.Length; x++)
-                    {
-                        ref Bgra32 pixel = ref pixelRowA[x];
-                        if (pixel == black)
-                        {
-                            pixel = transparent;
-                        }
-                    }
-                }
-            });
 
             rgb.ProcessPixelRows(accessor =>
             {
-
                 for (int y = 0; y < accessor.Height; y++)
                 {
                     Span<Bgra32> pixelRow = accessor.GetRowSpan(y);
@@ -127,10 +103,7 @@ namespace ArknightsResources.Utility
                         ref Bgra32 pixel = ref pixelRow[x];
 
                         Bgra32 alphaPixel = alpha[x, y];
-                        if (alphaPixel == transparent || (alphaPixel.B < 60 && alphaPixel.R < 60 && alphaPixel.G < 60))
-                        {
-                            pixel = transparent;
-                        }
+                        pixel.A = alphaPixel.R;
                     }
                 }
             });
