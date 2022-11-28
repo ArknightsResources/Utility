@@ -4,7 +4,6 @@
 #endif
 
 using System;
-using ArknightsResources.Operators.Models;
 using AssetStudio;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -55,17 +54,18 @@ namespace ArknightsResources.Utility
         /// 从指定的AssetBundle包中获取干员的立绘
         /// </summary>
         /// <param name="assetBundleFile">含有AssetBundle包内容的<seealso cref="byte"/>数组</param>
-        /// <param name="illustrationInfo">包含干员立绘信息的结构</param>
+        /// <param name="imageCodename">干员立绘的图像代号</param>
+        /// <param name="isSkin">指示干员立绘类型是否为皮肤</param>
         /// <returns>包含干员立绘的<seealso cref="byte"/>数组</returns>
-        public static byte[] GetOperatorIllustration(byte[] assetBundleFile, OperatorIllustrationInfo illustrationInfo)
+        public static byte[] GetOperatorIllustration(byte[] assetBundleFile, string imageCodename, bool isSkin)
         {
             Image<Bgra32> rgb = null;
             Image<Bgra32> alpha = null;
-            GetIllustFromAbPacksInternal(assetBundleFile, illustrationInfo, ref rgb, ref alpha);
+            GetIllustFromAbPacksInternal(assetBundleFile, imageCodename, isSkin, ref rgb, ref alpha);
             return ImageHelper.ProcessImage(rgb, alpha);
         }
 
-        private static void GetIllustFromAbPacksInternal(byte[] assetBundleFile, OperatorIllustrationInfo illustrationInfo, ref Image<Bgra32> rgb, ref Image<Bgra32> alpha)
+        private static void GetIllustFromAbPacksInternal(byte[] assetBundleFile, string imageCodename, bool isSkin, ref Image<Bgra32> rgb, ref Image<Bgra32> alpha)
         {
             using (MemoryStream stream = new MemoryStream(assetBundleFile))
             {
@@ -74,7 +74,7 @@ namespace ArknightsResources.Utility
                 assetsManager.LoadFile(".", reader);
                 IEnumerable<Texture2D> targets = from asset
                                                  in assetsManager.assetsFileList.FirstOrDefault().Objects
-                                                 where IsTexture2DMatchOperatorImage(asset, illustrationInfo)
+                                                 where IsTexture2DMatchOperatorImage(asset, imageCodename, isSkin)
                                                  select (asset as Texture2D);
 
                 foreach (var item in targets)
@@ -91,7 +91,7 @@ namespace ArknightsResources.Utility
             }
         }
 
-        private static bool IsTexture2DMatchOperatorImage(AssetStudio.Object asset, OperatorIllustrationInfo info)
+        private static bool IsTexture2DMatchOperatorImage(AssetStudio.Object asset, string imageCodename, bool isSkin)
         {
             if (asset.type == ClassIDType.Texture2D)
             {
@@ -102,12 +102,12 @@ namespace ArknightsResources.Utility
                 }
 
                 Match match;
-                if (info.Type == OperatorType.Skin)
+                if (isSkin)
                 {
-                    if (info.ImageCodename.Contains('#'))
+                    if (imageCodename.Contains('#'))
                     {
                         //有的皮肤(如阿),具有两个皮肤,但只能以后面的'#(数字)'区分,所以这里进行了特殊处理
-                        match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({info.ImageCodename})(b?)(\[alpha\])?",
+                        match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({imageCodename})(b?)(\[alpha\])?",
                                           RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
                         if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
                         {
@@ -118,7 +118,7 @@ namespace ArknightsResources.Utility
                     else
                     {
                         //如果match匹配成功,那么说明这个文件不符合要求,返回false
-                        match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({info.ImageCodename})#([\d]*)(b?)(\[alpha\])?",
+                        match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({imageCodename})#([\d]*)(b?)(\[alpha\])?",
                                           RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
                         if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[3].Value))
                         {
@@ -129,10 +129,10 @@ namespace ArknightsResources.Utility
                 }
                 else
                 {
-                    match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({info.ImageCodename}\+?)(?!b)(\[alpha\])?");
+                    match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({imageCodename}\+?)(?!b)(\[alpha\])?");
                 }
 
-                return match.Success && string.Equals(match.Groups[1].Value, info.ImageCodename);
+                return match.Success && string.Equals(match.Groups[1].Value, imageCodename);
             }
             else
             {
