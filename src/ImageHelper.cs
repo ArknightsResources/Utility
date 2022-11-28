@@ -115,7 +115,7 @@ namespace ArknightsResources.Utility
         /// <param name="originData">包含图片原始数据的数组</param>
         /// <param name="w">图片的宽度</param>
         /// <param name="h">图片的高度</param>
-        /// <returns>包含解码图片的<seealso cref="byte"/>数组</returns>
+        /// <returns>包含解码图片的byte数组</returns>
         public static byte[] DecodeETC1(byte[] originData, int w, int h)
         {
             var imageData = InternalArrayPools.ByteArrayPool.Rent(w * h * 4);
@@ -145,8 +145,8 @@ namespace ArknightsResources.Utility
             byte[] table = Etc1SubblockTable[data[3] & 1];
 
             byte[][] c = InternalArrayPools.ByteArrayArrayPool.Rent(2);
-            c[0] = new byte[3];
-            c[1] = new byte[3];
+            c[0] = InternalArrayPools.SmallByteArrayPool.Rent(3);
+            c[1] = InternalArrayPools.SmallByteArrayPool.Rent(3);
 
             if ((data[3] & 2) != 0)
             {
@@ -154,12 +154,15 @@ namespace ArknightsResources.Utility
                 c[0][0] = (byte)(data[0] & 0xf8);
                 c[0][1] = (byte)(data[1] & 0xf8);
                 c[0][2] = (byte)(data[2] & 0xf8);
+
                 c[1][0] = (byte)(c[0][0] + (data[0] << 3 & 0x18) - (data[0] << 3 & 0x20));
                 c[1][1] = (byte)(c[0][1] + (data[1] << 3 & 0x18) - (data[1] << 3 & 0x20));
                 c[1][2] = (byte)(c[0][2] + (data[2] << 3 & 0x18) - (data[2] << 3 & 0x20));
+
                 c[0][0] |= (byte)(c[0][0] >> 5);
                 c[0][1] |= (byte)(c[0][1] >> 5);
                 c[0][2] |= (byte)(c[0][2] >> 5);
+
                 c[1][0] |= (byte)(c[1][0] >> 5);
                 c[1][1] |= (byte)(c[1][1] >> 5);
                 c[1][2] |= (byte)(c[1][2] >> 5);
@@ -169,8 +172,10 @@ namespace ArknightsResources.Utility
                 // diff bit == 0
                 c[0][0] = (byte)((data[0] & 0xf0) | data[0] >> 4);
                 c[1][0] = (byte)((data[0] & 0x0f) | data[0] << 4);
+
                 c[0][1] = (byte)((data[1] & 0xf0) | data[1] >> 4);
                 c[1][1] = (byte)((data[1] & 0x0f) | data[1] << 4);
+
                 c[0][2] = (byte)((data[2] & 0xf0) | data[2] >> 4);
                 c[1][2] = (byte)((data[2] & 0x0f) | data[2] << 4);
             }
@@ -183,6 +188,8 @@ namespace ArknightsResources.Utility
                 byte m = Etc1ModifierTable[code[s]][j & 1];
                 buffer[WriteOrderTable[i]] = ApplicateColor(c[s], (k & 1) == 1 ? -m : m);
             }
+            InternalArrayPools.SmallByteArrayPool.Return(c[0],true);
+            InternalArrayPools.SmallByteArrayPool.Return(c[1],true);
             InternalArrayPools.ByteArrayArrayPool.Return(c);
         }
 
@@ -191,7 +198,17 @@ namespace ArknightsResources.Utility
         {
             Span<int> buf = buffer.AsSpan();
             int x = bw * bx;
-            int xl = (bw * (bx + 1) > w ? w - (bw * bx) : bw) * 4;
+            int xl;
+
+            if (bw * (bx + 1) > w)
+            {
+                xl = (w - (bw * bx)) * 4;
+            }
+            else
+            {
+                xl = (bw) * 4;
+            }
+
             int index = 0;
             for (int y = by * bh; index < buf.Length && y < h; index += bw, y++)
             {
@@ -202,7 +219,7 @@ namespace ArknightsResources.Utility
                     sliceArray[i] = slice[i];
                 }
                 Buffer.BlockCopy(sliceArray, 0, imageData, (y * w + x) * 4, xl);
-                InternalArrayPools.Int32ArrayPool.Return(sliceArray);
+                InternalArrayPools.Int32ArrayPool.Return(sliceArray, true);
             }
         }
 

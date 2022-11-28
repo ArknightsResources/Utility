@@ -301,22 +301,19 @@ namespace AssetStudio
                     case 2: //LZ4
                     case 3: //LZ4HC
                         {
-                            //NOTICE: Hacked here
-                            //BigArrayPool<byte>.Shared => InternalArrayPools.ByteArrayPool
-
                             var compressedSize = (int)blockInfo.compressedSize;
-                            var compressedBytes = InternalArrayPools.ByteArrayPool.Rent(compressedSize);
+                            var compressedBytes = BigArrayPool<byte>.Shared.Rent(compressedSize);
                             reader.Read(compressedBytes, 0, compressedSize);
                             var uncompressedSize = (int)blockInfo.uncompressedSize;
-                            var uncompressedBytes = InternalArrayPools.ByteArrayPool.Rent(uncompressedSize);
+                            var uncompressedBytes = BigArrayPool<byte>.Shared.Rent(uncompressedSize);
                             var numWrite = LZ4Codec.Decode(compressedBytes, 0, compressedSize, uncompressedBytes, 0, uncompressedSize);
                             if (numWrite != uncompressedSize)
                             {
                                 throw new IOException($"Lz4 decompression error, write {numWrite} bytes but expected {uncompressedSize} bytes");
                             }
                             blocksStream.Write(uncompressedBytes, 0, uncompressedSize);
-                            InternalArrayPools.ByteArrayPool.Return(compressedBytes);
-                            InternalArrayPools.ByteArrayPool.Return(uncompressedBytes);
+                            BigArrayPool<byte>.Shared.Return(compressedBytes);
+                            BigArrayPool<byte>.Shared.Return(uncompressedBytes);
                             break;
                         }
                 }
