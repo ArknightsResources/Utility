@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace AssetStudio
 {
@@ -77,6 +78,16 @@ namespace AssetStudio
             binaryReader.BaseStream.Position = offset;
             binaryReader.Read(buff, 0, (int)size);
         }
+
+#if NET6_0_OR_GREATER
+        //Added
+        public void GetData(Span<byte> buff)
+        {
+            var binaryReader = GetReader();
+            binaryReader.BaseStream.Position = offset;
+            binaryReader.Read(buff);
+        }
+#endif
 
         public void WriteData(string path)
         {

@@ -1,7 +1,9 @@
 ﻿using ArknightsResources.Utility;
 using K4os.Compression.LZ4;
+using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace AssetStudio
 {
@@ -282,7 +284,7 @@ namespace AssetStudio
             }
         }
 
-        private void ReadBlocks(EndianBinaryReader reader, Stream blocksStream)
+        private unsafe void ReadBlocks(EndianBinaryReader reader, Stream blocksStream)
         {
             foreach (var blockInfo in m_BlocksInfo)
             {
@@ -301,6 +303,30 @@ namespace AssetStudio
                     case 2: //LZ4
                     case 3: //LZ4HC
                         {
+#if NET6_0_OR_GREATER
+                            //Modified
+                            //Here we use unmanaged memory and span to replace array pool
+                            var compressedSize = (int)blockInfo.compressedSize;
+                            void* compressedBytesMemPtr = NativeMemory.AllocZeroed((nuint)compressedSize);
+                            Span<byte> compressedBytes = new Span<byte>(compressedBytesMemPtr, compressedSize);
+                            reader.Read(compressedBytes);
+
+                            var uncompressedSize = (int)blockInfo.uncompressedSize;
+                            void* uncompressedBytesMemPtr = NativeMemory.AllocZeroed((nuint)uncompressedSize);
+                            Span<byte> uncompressedBytes = new Span<byte>(uncompressedBytesMemPtr, uncompressedSize);
+
+                            var numWrite = LZ4Codec.Decode(compressedBytes, uncompressedBytes);
+                            if (numWrite != uncompressedSize)
+                            {
+                                NativeMemory.Free(uncompressedBytesMemPtr);
+                                NativeMemory.Free(compressedBytesMemPtr);
+                                throw new IOException($"Lz4 decompression error, write {numWrite} bytes but expected {uncompressedSize} bytes");
+                            }
+                            blocksStream.Write(uncompressedBytes);
+                            NativeMemory.Free(uncompressedBytesMemPtr);
+                            NativeMemory.Free(compressedBytesMemPtr);
+                            break;
+#else
                             var compressedSize = (int)blockInfo.compressedSize;
                             var compressedBytes = BigArrayPool<byte>.Shared.Rent(compressedSize);
                             reader.Read(compressedBytes, 0, compressedSize);
@@ -315,6 +341,7 @@ namespace AssetStudio
                             BigArrayPool<byte>.Shared.Return(compressedBytes);
                             BigArrayPool<byte>.Shared.Return(uncompressedBytes);
                             break;
+#endif
                         }
                 }
             }

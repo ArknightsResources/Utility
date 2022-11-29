@@ -1,5 +1,11 @@
-﻿#pragma warning disable IDE0090
+﻿#if NET7_0_OR_GREATER
 #pragma warning disable IDE0230
+#endif
+
+#if NET6_0_OR_GREATER
+#pragma warning disable IDE0090
+#pragma warning disable IDE0063
+#endif
 
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -7,6 +13,7 @@ using SixLabors.ImageSharp.Processing;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ArknightsResources.Utility
 {
@@ -118,20 +125,20 @@ namespace ArknightsResources.Utility
         /// <returns>包含解码图片的byte数组</returns>
         public static byte[] DecodeETC1(byte[] originData, int w, int h)
         {
-            var imageData = InternalArrayPools.ByteArrayPool.Rent(w * h * 4);
+            var imageData = new byte[w * h * 4];
 
             int num_blocks_x = (w + 3) / 4;
             int num_blocks_y = (h + 3) / 4;
             int[] buffer = InternalArrayPools.Int32ArrayPool.Rent(16);
-            Span<byte> originDataSpan = originData.AsSpan();
+            byte[][] c = new byte[][] { new byte[3], new byte[3] };
+            ReadOnlySpan<byte> originDataSpan = originData.AsSpan();
             int index = 0;
             for (int by = 0; by < num_blocks_y; by++)
             {
                 for (int bx = 0; bx < num_blocks_x; bx++, index += 8)
                 {
-                    Span<byte> slice = originDataSpan.Slice(index, 8);
-                    DecodeETC1Block(slice, buffer);
-
+                    ReadOnlySpan<byte> slice = originDataSpan.Slice(index, 8);
+                    DecodeETC1Block(slice, buffer, c);
                     CopyBlockBuffer(bx, by, w, h, 4, 4, buffer, imageData);
                 }
             }
@@ -139,14 +146,39 @@ namespace ArknightsResources.Utility
             return imageData;
         }
 
-        private static void DecodeETC1Block(Span<byte> data, int[] buffer)
+        /// <summary>
+        /// 解码ETC1图片
+        /// </summary>
+        /// <param name="originData">包含图片原始数据的Span&lt;byte&gt;</param>
+        /// <param name="w">图片的宽度</param>
+        /// <param name="h">图片的高度</param>
+        /// <returns>包含解码图片的byte数组</returns>
+        public static byte[] DecodeETC1(ReadOnlySpan<byte> originData, int w, int h)
+        {
+            var imageData = new byte[w * h * 4];
+
+            int num_blocks_x = (w + 3) / 4;
+            int num_blocks_y = (h + 3) / 4;
+            int[] buffer = InternalArrayPools.Int32ArrayPool.Rent(16);
+            byte[][] c = new byte[][] { new byte[3], new byte[3] };
+            int index = 0;
+            for (int by = 0; by < num_blocks_y; by++)
+            {
+                for (int bx = 0; bx < num_blocks_x; bx++, index += 8)
+                {
+                    ReadOnlySpan<byte> slice = originData.Slice(index, 8);
+                    DecodeETC1Block(slice, buffer, c);
+                    CopyBlockBuffer(bx, by, w, h, 4, 4, buffer, imageData);
+                }
+            }
+
+            return imageData;
+        }
+
+        private unsafe static void DecodeETC1Block(ReadOnlySpan<byte> data, int[] buffer, byte[][] c)
         {
             byte[] code = new byte[] { (byte)(data[3] >> 5), (byte)(data[3] >> 2 & 7) };  // Table codewords
             byte[] table = Etc1SubblockTable[data[3] & 1];
-
-            byte[][] c = InternalArrayPools.ByteArrayArrayPool.Rent(2);
-            c[0] = InternalArrayPools.SmallByteArrayPool.Rent(3);
-            c[1] = InternalArrayPools.SmallByteArrayPool.Rent(3);
 
             if ((data[3] & 2) != 0)
             {
@@ -188,15 +220,12 @@ namespace ArknightsResources.Utility
                 byte m = Etc1ModifierTable[code[s]][j & 1];
                 buffer[WriteOrderTable[i]] = ApplicateColor(c[s], (k & 1) == 1 ? -m : m);
             }
-            InternalArrayPools.SmallByteArrayPool.Return(c[0],true);
-            InternalArrayPools.SmallByteArrayPool.Return(c[1],true);
-            InternalArrayPools.ByteArrayArrayPool.Return(c);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void CopyBlockBuffer(int bx, int by, int w, int h, int bw, int bh, int[] buffer, byte[] imageData)
         {
-            Span<int> buf = buffer.AsSpan();
+            ReadOnlySpan<int> buf = buffer.AsSpan();
             int x = bw * bx;
             int xl;
 
@@ -212,7 +241,7 @@ namespace ArknightsResources.Utility
             int index = 0;
             for (int y = by * bh; index < buf.Length && y < h; index += bw, y++)
             {
-                Span<int> slice = buf.Slice(index, bw);
+                ReadOnlySpan<int> slice = buf.Slice(index, bw);
                 int[] sliceArray = InternalArrayPools.Int32ArrayPool.Rent(slice.Length);
                 for (int i = 0; i < slice.Length; i++)
                 {
