@@ -21,11 +21,17 @@ namespace ArknightsResources.Utility.Test
         }
 
         [Fact]
-        public void GetOperatorImageTest()
+        public async void GetOperatorImageTest()
         {
-            OperatorIllustrationInfo operatorInfo = new(string.Empty, string.Empty, "lionhd_snow", OperatorType.Skin, string.Empty);
-            byte[] value = OperatorResourceHelper.GetOperatorImage(operatorInfo);
-            Assert.NotEmpty(value);
+            OperatorsList list = await OperatorResourceHelper.GetAllOperatorsAsync(ChineseSimplifiedCultureInfo);
+            foreach (var item in list.Operators)
+            {
+                foreach (var item2 in item.Value.Illustrations)
+                {
+                    byte[] value = OperatorResourceHelper.GetOperatorImage(item2);
+                    Assert.NotEmpty(value);
+                }
+            }
         }
 
         [Fact]

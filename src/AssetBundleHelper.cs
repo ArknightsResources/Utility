@@ -65,6 +65,11 @@ namespace ArknightsResources.Utility
 
             GetIllustFromAbPacksInternal(assetBundleFile, imageCodename, isSkin, ref rgb, ref alpha);
 
+            if (rgb is null || alpha is null)
+            {
+                throw new ArgumentException($"在包中找不到与参数{imageCodename}相关的资源");
+            }
+
             return ImageHelper.ProcessImage(rgb, alpha);
         }
 
