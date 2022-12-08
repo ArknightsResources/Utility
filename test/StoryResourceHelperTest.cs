@@ -1,6 +1,6 @@
 using StoryResource = ArknightsResources.Stories.Resources.Properties.Resources;
 
-namespace ArknightsResources.Utility
+namespace ArknightsResources.Utility.Test
 {
     public class StoryResourceHelperTest
     {

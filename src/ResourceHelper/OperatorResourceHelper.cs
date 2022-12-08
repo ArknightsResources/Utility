@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Resources;
 using System.Text;
@@ -14,20 +15,15 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
 using System.Threading.Tasks;
+using ArknightsResources.CustomResourceHelpers;
 using ArknightsResources.Operators.Models;
-using Org.Brotli.Dec;
 
 namespace ArknightsResources.Utility
 {
     /// <summary>
     /// 为ArknightsResources.Operators.Resources的资源访问提供帮助的类
     /// </summary>
-#if NET7_0_OR_GREATER
-    public class OperatorResourceHelper : CustomResourceHelpers.IOperatorResourceHelper
-#else
-    public class OperatorResourceHelper : CustomResourceHelpers.OperatorResourceHelper
-#endif
-
+    public class OperatorResourceHelper : IOperatorInfoGetter, IOperatorIllustrationGetter, IOperatorSpineAnimationGetter
     {
 #if !NET7_0_OR_GREATER
         /// <summary>
@@ -41,44 +37,19 @@ namespace ArknightsResources.Utility
         /// </summary>
 #if NET7_0_OR_GREATER
         public static ResourceManager ResourceManager { get; set; }
-
-        /// <summary>
-        /// 简体中文的语言文化信息
-        /// </summary>
-        public static readonly CultureInfo ChineseSimplifiedCultureInfo = CultureInfo.ReadOnly(new CultureInfo("zh-CN", false));
-        /// <summary>
-        /// 繁体中文的语言文化信息
-        /// </summary>
-        public static readonly CultureInfo ChineseTraditionalCultureInfo = CultureInfo.ReadOnly(new CultureInfo("zh-TW", false));
-        /// <summary>
-        /// 英语的语言文化信息
-        /// </summary>
-        public static readonly CultureInfo EnglishCultureInfo = CultureInfo.ReadOnly(new CultureInfo("en-US", false));
-        /// <summary>
-        /// 日语的语言文化信息
-        /// </summary>
-        public static readonly CultureInfo JapaneseCultureInfo = CultureInfo.ReadOnly(new CultureInfo("ja-JP", false));
-        /// <summary>
-        /// 韩语的语言文化信息
-        /// </summary>
-        public static readonly CultureInfo KoreanCultureInfo = CultureInfo.ReadOnly(new CultureInfo("ko-KR", false));
-        /// <summary>
-        /// 意大利语的语言文化信息
-        /// </summary>
-        public static readonly CultureInfo ItalianCultureInfo = CultureInfo.ReadOnly(new CultureInfo("it-IT", false));
 #else
         public ResourceManager ResourceManager { get; set; }
 #endif
 
         /// <summary>
-        /// 获取干员图片代号与干员代号的映射表
+        /// 获取干员内部代号与干员名称的映射表
         /// </summary>
-        /// <param name="cultureInfo">干员代号所用语言</param>
-        /// <returns>Key为干员图片代号,Value为干员代号的Dictionary&lt;string, string&gt;</returns>
+        /// <param name="cultureInfo">干员名称所用语言</param>
+        /// <returns>Key为干员内部代号,Value为干员名称的Dictionary&lt;string, string&gt;</returns>
 #if NET7_0_OR_GREATER
-        public static Dictionary<string, string> GetOperatorImageCodenameMapping(CultureInfo cultureInfo)
+        public static Dictionary<string, string> GetOperatorCodenameMapping(CultureInfo cultureInfo)
 #else
-        public Dictionary<string, string> GetOperatorImageCodenameMapping(CultureInfo cultureInfo)
+        public Dictionary<string, string> GetOperatorCodenameMapping(CultureInfo cultureInfo)
 #endif
         {
             if (ResourceManager is null)
@@ -96,14 +67,48 @@ namespace ArknightsResources.Utility
             return dict;
         }
 
+        /// <summary>
+        /// 获取干员内部代号与干员皮肤列表的映射表
+        /// </summary>
+        /// <returns>Key为干员内部代号,Value为干员皮肤列表的Dictionary&lt;string, IList&lt;string&gt;&gt;</returns>
+#if NET7_0_OR_GREATER
+        public static Dictionary<string, IList<string>> GetOperatorSkinMapping()
+#else
+        public Dictionary<string, IList<string>> GetOperatorSkinMapping()
+#endif
+        {
+            if (ResourceManager is null)
+            {
+                throw new InvalidOperationException($"此类的属性 {nameof(ResourceManager)} 不可为空");
+            }
+
+            string skinList = ResourceManager.GetString("operator_skin_codename");
+            Dictionary<string, IList<string>> dict = new Dictionary<string, IList<string>>(250);
+            StringReader reader = new StringReader(skinList);
+            while (reader.Peek() != -1)
+            {
+                string line = reader.ReadLine();
+                string[] val = line.Split('_');
+                if (!dict.ContainsKey(val[0]))
+                {
+                    dict[val[0]] = new List<string>(5) { line };
+                }
+                else
+                {
+                    dict[val[0]].Add(line);
+                }
+            }
+            return dict;
+        }
+
         /// <inheritdoc/>
         /// <exception cref="ArgumentException"/>
         /// <exception cref="MissingManifestResourceException"/>
         /// <exception cref="MissingSatelliteAssemblyException"/>
 #if NET7_0_OR_GREATER
-        public static byte[] GetOperatorImage(OperatorIllustrationInfo illustInfo)
+        public static byte[] GetOperatorIllustration(OperatorIllustrationInfo illustInfo)
 #else
-        public override byte[] GetOperatorImage(OperatorIllustrationInfo illustInfo)
+        public byte[] GetOperatorIllustration(OperatorIllustrationInfo illustInfo)
 #endif
         {
             if (ResourceManager is null)
@@ -133,13 +138,75 @@ namespace ArknightsResources.Utility
         }
 
         /// <inheritdoc/>
+        /// <exception cref="ArgumentException"/>
+        /// <exception cref="MissingManifestResourceException"/>
+        /// <exception cref="MissingSatelliteAssemblyException"/>
 #if NET7_0_OR_GREATER
-        public static async Task<byte[]> GetOperatorImageAsync(OperatorIllustrationInfo illustInfo)
+        public static (TextReader, TextReader, byte[]) GetOperatorSpineAnimation(OperatorSpineInfo spineInfo)
 #else
-        public override async Task<byte[]> GetOperatorImageAsync(OperatorIllustrationInfo illustInfo)
+        public (TextReader, TextReader, byte[]) GetOperatorSpineAnimation(OperatorSpineInfo spineInfo)
 #endif
         {
-            return await Task.Run(() => GetOperatorImage(illustInfo));
+            if (ResourceManager is null)
+            {
+                throw new InvalidOperationException($"此类的属性 {nameof(ResourceManager)} 不可为空");
+            }
+
+            string fileName;
+            string imageCodename = spineInfo.ImageCodename.Split('_')[0].Split('#')[0];
+            if (spineInfo.IsSkin)
+            {
+                fileName = $"operator_image_skin_{imageCodename}";
+            }
+            else
+            {
+                if (spineInfo.ModelSet == OperatorSpineModelSet.Build)
+                {
+                    //升变形式阿米娅的基建小人与普通阿米娅相同
+                    fileName = imageCodename == "amiya2" ? $"operator_image_amiya" : $"operator_image_{imageCodename}";
+                }
+                else
+                {
+                    fileName = $"operator_image_spine_{imageCodename}";
+                }
+            }
+
+            byte[] abPack = ResourceManager.GetObject(fileName) as byte[];
+            if (abPack is null)
+            {
+                throw new ArgumentException($@"使用给定的参数""{spineInfo}""时找不到资源");
+            }
+
+            (TextReader, TextReader, byte[]) result;
+            if (spineInfo.ImageCodename == "amiya2")
+            {
+                result = AssetBundleHelper.GetOperatorSpineAnimation(abPack, new OperatorSpineInfo(spineInfo.ModelSet, "amiya", false));
+            }
+            else
+            {
+                result = AssetBundleHelper.GetOperatorSpineAnimation(abPack, spineInfo);
+            }
+            return result;
+        }
+
+        /// <inheritdoc/>
+#if NET7_0_OR_GREATER
+        public static async Task<(TextReader, TextReader, byte[])> GetOperatorSpineAnimationAsync(OperatorSpineInfo spineInfo)
+#else
+        public async Task<(TextReader, TextReader, byte[])> GetOperatorSpineAnimationAsync(OperatorSpineInfo spineInfo)
+#endif
+        {
+            return await Task.Run(() => GetOperatorSpineAnimationAsync(spineInfo));
+        }
+
+        /// <inheritdoc/>
+#if NET7_0_OR_GREATER
+        public static async Task<byte[]> GetOperatorIllustrationAsync(OperatorIllustrationInfo illustInfo)
+#else
+        public async Task<byte[]> GetOperatorIllustrationAsync(OperatorIllustrationInfo illustInfo)
+#endif
+        {
+            return await Task.Run(() => GetOperatorIllustration(illustInfo));
         }
 
         /// <inheritdoc/>
@@ -147,7 +214,7 @@ namespace ArknightsResources.Utility
 #if NET7_0_OR_GREATER
         public static Operator GetOperator(string operatorName, CultureInfo cultureInfo)
 #else
-        public override Operator GetOperator(string operatorName, CultureInfo cultureInfo)
+        public Operator GetOperator(string operatorName, CultureInfo cultureInfo)
 #endif
         {
             if (ResourceManager is null)
@@ -182,7 +249,7 @@ namespace ArknightsResources.Utility
 #if NET7_0_OR_GREATER
         public static async Task<Operator> GetOperatorAsync(string operatorName, CultureInfo cultureInfo)
 #else
-        public override async Task<Operator> GetOperatorAsync(string operatorName, CultureInfo cultureInfo)
+        public async Task<Operator> GetOperatorAsync(string operatorName, CultureInfo cultureInfo)
 #endif
         {
             if (ResourceManager is null)
@@ -212,14 +279,14 @@ namespace ArknightsResources.Utility
         /// <inheritdoc/>
         /// <exception cref="ArgumentException"/>
 #if NET7_0_OR_GREATER
-        public static Operator GetOperatorWithImageCodename(string imageCodename, CultureInfo cultureInfo)
+        public static Operator GetOperatorWithCodename(string codename, CultureInfo cultureInfo)
 #else
-        public override Operator GetOperatorWithImageCodename(string imageCodename, CultureInfo cultureInfo)
+        public Operator GetOperatorWithCodename(string codename, CultureInfo cultureInfo)
 #endif
         {
-            if (string.IsNullOrWhiteSpace(imageCodename))
+            if (string.IsNullOrWhiteSpace(codename))
             {
-                throw new ArgumentException($"“{nameof(imageCodename)}”不能为 null 或空白。", nameof(imageCodename));
+                throw new ArgumentException($"“{nameof(codename)}”不能为 null 或空白。", nameof(codename));
             }
 
             if (ResourceManager is null)
@@ -229,11 +296,11 @@ namespace ArknightsResources.Utility
 
             try
             {
-                return GetOperatorWithCodenameInternal(imageCodename, cultureInfo, ResourceManager);
+                return GetOperatorWithCodenameInternal(codename, cultureInfo, ResourceManager);
             }
             catch (InvalidOperationException ex)
             {
-                throw new ArgumentException($"参数\"{imageCodename}\"无效", ex);
+                throw new ArgumentException($"参数\"{codename}\"无效", ex);
             }
             catch (ArgumentNullException ex)
             {
@@ -243,9 +310,9 @@ namespace ArknightsResources.Utility
 
         /// <inheritdoc/>
 #if NET7_0_OR_GREATER
-        public static async Task<Operator> GetOperatorWithImageCodenameAsync(string imageCodename, CultureInfo cultureInfo)
+        public static async Task<Operator> GetOperatorWithCodenameAsync(string codename, CultureInfo cultureInfo)
 #else
-        public override async Task<Operator> GetOperatorWithImageCodenameAsync(string imageCodename, CultureInfo cultureInfo)
+        public async Task<Operator> GetOperatorWithCodenameAsync(string codename, CultureInfo cultureInfo)
 #endif
         {
             if (ResourceManager is null)
@@ -253,18 +320,18 @@ namespace ArknightsResources.Utility
                 throw new InvalidOperationException($"此类的属性 {nameof(ResourceManager)} 不可为空");
             }
 
-            if (string.IsNullOrWhiteSpace(imageCodename))
+            if (string.IsNullOrWhiteSpace(codename))
             {
-                throw new ArgumentException($"“{nameof(imageCodename)}”不能为 null 或空白。", nameof(imageCodename));
+                throw new ArgumentException($"“{nameof(codename)}”不能为 null 或空白。", nameof(codename));
             }
 
             try
             {
-                return await Task.Run(() => GetOperatorWithCodenameInternal(imageCodename, cultureInfo, ResourceManager));
+                return await Task.Run(() => GetOperatorWithCodenameInternal(codename, cultureInfo, ResourceManager));
             }
             catch (InvalidOperationException ex)
             {
-                throw new ArgumentException($"参数\"{imageCodename}\"无效", ex);
+                throw new ArgumentException($"参数\"{codename}\"无效", ex);
             }
         }
 
@@ -272,7 +339,7 @@ namespace ArknightsResources.Utility
 #if NET7_0_OR_GREATER
         public static OperatorsList GetAllOperators(CultureInfo cultureInfo)
 #else
-        public override OperatorsList GetAllOperators(CultureInfo cultureInfo)
+        public OperatorsList GetAllOperators(CultureInfo cultureInfo)
 #endif
         {
             if (ResourceManager is null)
@@ -287,7 +354,7 @@ namespace ArknightsResources.Utility
 #if NET7_0_OR_GREATER
         public static async Task<OperatorsList> GetAllOperatorsAsync(CultureInfo cultureInfo)
 #else
-        public override async Task<OperatorsList> GetAllOperatorsAsync(CultureInfo cultureInfo)
+        public async Task<OperatorsList> GetAllOperatorsAsync(CultureInfo cultureInfo)
 #endif
         {
             if (ResourceManager is null)
@@ -356,6 +423,7 @@ namespace ArknightsResources.Utility
                             Converters = { new JsonStringEnumConverter() },
                         };
 #if NET6_0_OR_GREATER
+                        //支持IL裁剪
                         OperatorSourceGenerationContext context = new OperatorSourceGenerationContext(options);
                         op = item.Value.Deserialize(context.Operator);
 #else
@@ -374,7 +442,7 @@ namespace ArknightsResources.Utility
             return op;
         }
 
-        private static Operator GetOperatorWithCodenameInternal(string operatorImageCodename, CultureInfo cultureInfo,ResourceManager resourceManager)
+        private static Operator GetOperatorWithCodenameInternal(string codename, CultureInfo cultureInfo,ResourceManager resourceManager)
         {
             byte[] opJson = (byte[])resourceManager.GetObject("operators", cultureInfo);
             Operator op = null;
@@ -385,7 +453,7 @@ namespace ArknightsResources.Utility
                 {
                     bool enumComplete = false;
                     foreach (JsonProperty item2 in from JsonProperty item2 in item.Value.EnumerateObject()
-                                                    where item2.Name == "ImageCodename" && item2.Value.GetString() == operatorImageCodename
+                                                    where item2.Name == nameof(Operator.Codename) && item2.Value.GetString() == codename
                                                     select item2)
                     {
                         JsonSerializerOptions options = new JsonSerializerOptions()
@@ -395,6 +463,7 @@ namespace ArknightsResources.Utility
                             Converters = { new JsonStringEnumConverter() }
                         };
 #if NET6_0_OR_GREATER
+                        //支持IL裁剪
                         OperatorSourceGenerationContext context = new OperatorSourceGenerationContext(options);
                         op = item.Value.Deserialize(context.Operator);
 #else
@@ -423,6 +492,7 @@ namespace ArknightsResources.Utility
                 Converters = { new JsonStringEnumConverter() }
             };
 #if NET6_0_OR_GREATER
+            //支持IL裁剪
             OperatorsListSourceGenerationContext context = new OperatorsListSourceGenerationContext(options);
             OperatorsList operatorsList = JsonSerializer.Deserialize(operators, context.OperatorsList);
 #else
@@ -433,6 +503,8 @@ namespace ArknightsResources.Utility
     }
 
 #if NET6_0_OR_GREATER
+    //这些类提供System.Text.Json源代码生成器的支持
+
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(Operator))]
     internal partial class OperatorSourceGenerationContext : JsonSerializerContext
