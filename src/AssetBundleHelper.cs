@@ -256,21 +256,21 @@ namespace ArknightsResources.Utility
                        && behaviour.m_Script.TryGet(out var m_Script)
                        && m_Script.m_ClassName == "CharacterAnimator";
             });
-            OrderedDictionary charAnimatorDict = characterAnimator.ToType();
-            OrderedDictionary frontOrBackDict = (OrderedDictionary)charAnimatorDict[type];
-            OrderedDictionary skeletonNode = (OrderedDictionary)frontOrBackDict["skeleton"];
+            dynamic charAnimatorDict = characterAnimator.ToType();
+            dynamic frontOrBackDict = charAnimatorDict[type];
+            dynamic skeletonNode = frontOrBackDict["skeleton"];
             long skeletonAnimationPathID = (long)skeletonNode["m_PathID"];
             MonoBehaviour skeletonAnimation = GetByPathID<MonoBehaviour>(objects, skeletonAnimationPathID);
 
-            OrderedDictionary skeletonAnimationDict = skeletonAnimation.ToType();
-            OrderedDictionary skeletonAnimationRoot = (OrderedDictionary)skeletonAnimationDict["skeletonDataAsset"];
+            dynamic skeletonAnimationDict = skeletonAnimation.ToType();
+            dynamic skeletonAnimationRoot = skeletonAnimationDict["skeletonDataAsset"];
             long skeletonDataPathID = (long)skeletonAnimationRoot["m_PathID"];
             MonoBehaviour skeletonData = GetByPathID<MonoBehaviour>(objects, skeletonDataPathID);
 
-            OrderedDictionary skeletonDataDict = skeletonData.ToType();
+            dynamic skeletonDataDict = skeletonData.ToType();
             #region Skel
             //尽管这里节点名称有"skeletonJSON",但是其返回的是二进制skel文件
-            OrderedDictionary skeletonJSON = (OrderedDictionary)skeletonDataDict["skeletonJSON"];
+            dynamic skeletonJSON = skeletonDataDict["skeletonJSON"];
             long skelPathID = (long)skeletonJSON["m_PathID"];
 
             TextAsset skel = GetByPathID<TextAsset>(objects, skelPathID);
@@ -279,13 +279,13 @@ namespace ArknightsResources.Utility
             StreamReader skelReader = new StreamReader(skelStream);
             #endregion
 
-            IList<object> atlasAssetsDict = (IList<object>)skeletonDataDict["atlasAssets"];
-            OrderedDictionary atlasAssetsDictTarget = (OrderedDictionary)atlasAssetsDict[0];
+            dynamic atlasAssetsDict = skeletonDataDict["atlasAssets"];
+            dynamic atlasAssetsDictTarget = atlasAssetsDict[0];
             long atlasAssetsPathID = (long)atlasAssetsDictTarget["m_PathID"];
             MonoBehaviour altasAssets = GetByPathID<MonoBehaviour>(objects, atlasAssetsPathID);
 
-            OrderedDictionary atlasAssetsNode = altasAssets.ToType();
-            OrderedDictionary atlasFile = (OrderedDictionary)atlasAssetsNode["atlasFile"];
+            dynamic atlasAssetsNode = altasAssets.ToType();
+            dynamic atlasFile = atlasAssetsNode["atlasFile"];
             #region Atlas
             long atlasPathID = (long)atlasFile["m_PathID"];
             TextAsset atlas = GetByPathID<TextAsset>(objects, atlasPathID);
@@ -294,8 +294,8 @@ namespace ArknightsResources.Utility
             StreamReader atlasReader = new StreamReader(atlasStream);
             #endregion
 
-            IList<object> materials = (IList<object>)atlasAssetsNode["materials"];
-            OrderedDictionary materialsTarget = (OrderedDictionary)materials[0];
+            dynamic materials = atlasAssetsNode["materials"];
+            dynamic materialsTarget = materials[0];
             #region Image
             long materialPathID = (long)materialsTarget["m_PathID"];
             Material material = GetByPathID<Material>(objects, materialPathID);
