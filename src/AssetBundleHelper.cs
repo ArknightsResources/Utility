@@ -233,6 +233,9 @@ namespace ArknightsResources.Utility
             }
         }
 
+        //三元组的第一项为包含atlas的StreamReader
+        //第二项为包含二进制形式skel文件的StreamReader
+        //第三项为Spine动画所需的PNG格式图片
         private static (StreamReader, StreamReader, byte[]) GetFrontOrBackSpineAnimation(IEnumerable<AssetStudio.Object> objects, OperatorSpineModelSet modelSet)
         {
             string type;
