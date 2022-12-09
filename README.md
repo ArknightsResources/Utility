@@ -4,7 +4,7 @@
 - AssetBundle包读取
 - 图像处理
 - 剧情文件读取
-- 访问[ArknightsResources.OperatorsResources](https://github.com/ArknightsResources/OperatorsResources)与[ArknightsResources.StoriesResources](https://github.com/ArknightsResources/OperatorsResources)项目的资源
+- 访问[ArknightsResources.OperatorsResources](https://github.com/ArknightsResources/OperatorsResources)与[ArknightsResources.StoriesResources](https://github.com/ArknightsResources/StoriesResources)项目的资源
 
 ## 目标框架
 .NET Standard 2.0, .NET 6.0 与 .NET 7.0。
