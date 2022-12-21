@@ -13,10 +13,13 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Text.Unicode;
 using System.Threading.Tasks;
 using ArknightsResources.CustomResourceHelpers;
 using ArknightsResources.Operators.Models;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp;
 
 namespace ArknightsResources.Utility
 {

@@ -38,29 +38,23 @@ namespace ArknightsResources.Utility.Test
         public async void GetOperatorSpineAnimationTest()
         {
             OperatorsList list = await OperatorResourceHelper.GetAllOperatorsAsync(ChineseSimplifiedCultureInfo);
-            //foreach (var pair in list.Operators)
-            //{
-            //    foreach (var illustInfo in pair.Value.Illustrations)
-            //    {
-            //        bool isSkin = illustInfo.Type == OperatorType.Skin;
-            //        string imageCodename = isSkin
-            //            ? illustInfo.ImageCodename
-            //            : pair.Value.Codename;
+            foreach (var pair in list.Operators)
+            {
+                foreach (var illustInfo in pair.Value.Illustrations)
+                {
+                    bool isSkin = illustInfo.Type == OperatorType.Skin;
+                    string imageCodename = isSkin
+                        ? illustInfo.ImageCodename
+                        : pair.Value.Codename;
 
-            //        OperatorSpineInfo spineInfo = new(OperatorSpineModelSet.Build, imageCodename, isSkin);
-            //        var value = OperatorResourceHelper.GetOperatorSpineAnimation(spineInfo);
+                    OperatorSpineInfo spineInfo = new(OperatorSpineModelSet.Build, imageCodename, isSkin);
+                    var value = OperatorResourceHelper.GetOperatorSpineAnimation(spineInfo);
 
-            //        Assert.NotNull(value.Item1);
-            //        Assert.NotNull(value.Item2);
-            //        Assert.NotEmpty(value.Item3);
-            //    }
-            //}
-            OperatorSpineInfo spineInfo = new(OperatorSpineModelSet.CombatFront, "elysm", false);
-            var value = OperatorResourceHelper.GetOperatorSpineAnimation(spineInfo);
-
-            Assert.NotNull(value.Item1);
-            Assert.NotNull(value.Item2);
-            Assert.NotEmpty(value.Item3);
+                    Assert.NotNull(value.Item1);
+                    Assert.NotNull(value.Item2);
+                    Assert.NotEmpty(value.Item3);
+                }
+            }
         }
 
         [Fact]
@@ -111,7 +105,7 @@ namespace ArknightsResources.Utility.Test
         }
 
         [Fact]
-        public void GetOperatorImageMappingTest()
+        public void GetOperatorCodenameMappingTest()
         {
             Dictionary<string, string> mapping = OperatorResourceHelper.GetOperatorCodenameMapping(ChineseSimplifiedCultureInfo);
             Assert.NotEmpty(mapping);
