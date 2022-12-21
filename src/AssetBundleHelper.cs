@@ -3,6 +3,7 @@
 #pragma warning disable IDE0063
 #pragma warning disable IDE0066
 #endif
+
 #pragma warning disable IDE0017
 
 using System;
@@ -15,13 +16,8 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.ColorSpaces;
 using ArknightsResources.Operators.Models;
-using System.Collections;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Collections.Specialized;
 
 namespace ArknightsResources.Utility
 {
@@ -100,8 +96,19 @@ namespace ArknightsResources.Utility
                 long rgbPath = GetPathIDFromKeyValuePairs(m_TexEnvs, "_MainTex");
                 long alphaPath = GetPathIDFromKeyValuePairs(m_TexEnvs, "_AlphaTex");
 
-                rgb = GetByPathID<Texture2D>(objects, rgbPath).ConvertToImage();
-                alpha = GetByPathID<Texture2D>(objects, alphaPath).ConvertToImage();
+                Texture2D rgbTexture2D = GetByPathID<Texture2D>(objects, rgbPath, true);
+                Texture2D alphaTexture2D = GetByPathID<Texture2D>(objects, alphaPath, true);
+                if (rgbTexture2D is null || alphaTexture2D is null)
+                {
+                    FallbackGetIllustFromAbPacksInternal(assetBundleFile, imageCodename, isSkin, out rgb, out alpha);
+                    if (rgb is null || alpha is null)
+                    {
+                        throw new ArgumentException("无法在包中解析出立绘文件");
+                    }
+                    return;
+                }
+                rgb = rgbTexture2D.ConvertToImage();
+                alpha = alphaTexture2D.ConvertToImage();
             }
         }
 
@@ -118,72 +125,17 @@ namespace ArknightsResources.Utility
                 {
                     case OperatorSpineModelSet.CombatFront:
                     case OperatorSpineModelSet.CombatBack:
-                        (StreamReader, StreamReader, byte[]) animation = GetFrontOrBackSpineAnimation(objects, spineInfo.ModelSet);
+                        (StreamReader, StreamReader, byte[]) animation = GetFrontOrBackSpineAnimation(objects, spineInfo);
                         atlasReader = animation.Item1;
                         skelReader = animation.Item2;
                         image = animation.Item3;
                         break;
                     case OperatorSpineModelSet.Build:
                     default:
-                        #region Build
-                        {
-                            //防止变量外溢
-                            Material material = GetFromObjects<Material>(objects, (obj) =>
-                                IsMaterialMatchBuildSpineAnimation(obj, spineInfo));
-                            KeyValuePair<string, UnityTexEnv>[] m_TexEnvs = material.m_SavedProperties.m_TexEnvs;
-                            long rgbPath = GetPathIDFromKeyValuePairs(m_TexEnvs, "_MainTex");
-                            long alphaPath = GetPathIDFromKeyValuePairs(m_TexEnvs, "_AlphaTex");
-                            Image<Bgra32> rgb = GetByPathID<Texture2D>(objects, rgbPath).ConvertToImage();
-                            Image<Bgra32> alpha = GetByPathID<Texture2D>(objects, alphaPath).ConvertToImage();
-                            image = ImageHelper.ProcessImage(rgb, alpha);
-                        }
-                        TextAsset atlas = GetFromObjects<TextAsset>(objects, (obj) =>
-                        {
-                            if (obj is TextAsset text)
-                            {
-                                //有的皮肤(如阿),具有两个皮肤,但只能以后面的'#(数字)'区分,这种情况不按皮肤方式处理
-                                string pattern = spineInfo.IsSkin && !spineInfo.ImageCodename.Contains('#')
-                                ? $@"build_char_[\d]*_({spineInfo.ImageCodename})#([\d]*).atlas"
-                                : $@"build_char_[\d]*_({spineInfo.ImageCodename}).atlas";
-
-                                Match match = GetMatchByPattern(text.m_Name, pattern);
-                                return match.Success;
-                            }
-                            else
-                            {
-                                return false;
-                            }
-                        });
-
-                        TextAsset skel = GetFromObjects<TextAsset>(objects, (obj) =>
-                        {
-                            if (obj is TextAsset text)
-                            {
-                                //有的皮肤(如阿),具有两个皮肤,但只能以后面的'#(数字)'区分,这种情况不按皮肤方式处理
-                                string pattern = spineInfo.IsSkin && !spineInfo.ImageCodename.Contains('#')
-                                ? $@"build_char_[\d]*_({spineInfo.ImageCodename})#([\d]*).skel"
-                                : $@"build_char_[\d]*_({spineInfo.ImageCodename}).skel";
-
-                                Match match = GetMatchByPattern(text.m_Name, pattern);
-                                return match.Success;
-                            }
-                            else
-                            {
-                                return false;
-                            }
-                        });
-                        MemoryStream atlasStream = new MemoryStream(atlas.m_Script)
-                        {
-                            Position = 0
-                        };
-                        atlasReader = new StreamReader(atlasStream);
-
-                        MemoryStream skelStream = new MemoryStream(skel.m_Script)
-                        {
-                            Position = 0
-                        };
-                        skelReader = new StreamReader(skelStream);
-                        #endregion
+                        (StreamReader, StreamReader, byte[]) buildAnimation = GetBuildSpineAnimation(objects, spineInfo);
+                        atlasReader = buildAnimation.Item1;
+                        skelReader = buildAnimation.Item2;
+                        image = buildAnimation.Item3;
                         break;
                 }
             }
@@ -236,11 +188,11 @@ namespace ArknightsResources.Utility
         //三元组的第一项为包含atlas的StreamReader
         //第二项为包含二进制形式skel文件的StreamReader
         //第三项为Spine动画所需的PNG格式图片
-        private static (StreamReader, StreamReader, byte[]) GetFrontOrBackSpineAnimation(IEnumerable<AssetStudio.Object> objects, OperatorSpineModelSet modelSet)
+        private static (StreamReader, StreamReader, byte[]) GetFrontOrBackSpineAnimation(IEnumerable<AssetStudio.Object> objects, OperatorSpineInfo spineInfo)
         {
             string type;
 
-            switch (modelSet)
+            switch (spineInfo.ModelSet)
             {
                 case OperatorSpineModelSet.CombatFront:
                     type = "_front";
@@ -250,65 +202,153 @@ namespace ArknightsResources.Utility
                     break;
                 case OperatorSpineModelSet.Build:
                 default:
-                    throw new InvalidOperationException($"参数{nameof(modelSet)}的值为Build，这对该方法来说无效");
+                    throw new InvalidOperationException($"参数{nameof(spineInfo.ModelSet)}的值为Build，这对该方法来说无效");
             }
 
-            MonoBehaviour characterAnimator = GetFromObjects<MonoBehaviour>(objects, (obj) =>
-            {
-                return obj is MonoBehaviour behaviour
+            IEnumerable<MonoBehaviour> characterAnimators = from animator in objects where animator is MonoBehaviour behaviour
                        && behaviour.m_Script.TryGet(out var m_Script)
-                       && m_Script.m_ClassName == "CharacterAnimator";
+                       && (m_Script.m_ClassName == "CharacterAnimator" || m_Script.m_ClassName == "SingleSpineAnimator")
+                       select (MonoBehaviour)animator;
+
+            //一般情况下,下面的循环只会执行一次
+            //但如果包内有多个Spine动画，那下面的循环会寻找满足条件的那个动画
+            foreach (MonoBehaviour characterAnimator in characterAnimators)
+            {
+                dynamic charAnimatorDict = characterAnimator.ToType();
+                dynamic frontOrSingleOrBackDict = charAnimatorDict[type];
+                dynamic skeletonNode;
+                if (frontOrSingleOrBackDict is null)
+                {
+                    //这是包没有战斗正面与战斗背面之分的情况(比如安洁莉娜)
+                    //Animator为SingleSpineAnimator
+                    skeletonNode = charAnimatorDict["_skeleton"];
+                }
+                else
+                {
+                    skeletonNode = frontOrSingleOrBackDict["skeleton"];
+                }
+                long skeletonAnimationPathID = (long)skeletonNode["m_PathID"];
+                MonoBehaviour skeletonAnimation = GetByPathID<MonoBehaviour>(objects, skeletonAnimationPathID);
+
+                dynamic skeletonAnimationDict = skeletonAnimation.ToType();
+                dynamic skeletonAnimationRoot = skeletonAnimationDict["skeletonDataAsset"];
+                long skeletonDataPathID = (long)skeletonAnimationRoot["m_PathID"];
+                MonoBehaviour skeletonData = GetByPathID<MonoBehaviour>(objects, skeletonDataPathID);
+
+                dynamic skeletonDataDict = skeletonData.ToType();
+                dynamic atlasAssetsDict = skeletonDataDict["atlasAssets"];
+                dynamic atlasAssetsDictTarget = atlasAssetsDict[0];
+                long atlasAssetsPathID = (long)atlasAssetsDictTarget["m_PathID"];
+                MonoBehaviour altasAssets = GetByPathID<MonoBehaviour>(objects, atlasAssetsPathID);
+
+                dynamic atlasAssetsNode = altasAssets.ToType();
+                dynamic atlasFile = atlasAssetsNode["atlasFile"];
+                dynamic materials = atlasAssetsNode["materials"];
+                dynamic materialsTarget = materials[0];
+                #region Image
+                long materialPathID = (long)materialsTarget["m_PathID"];
+                Material material = GetByPathID<Material>(objects, materialPathID);
+                KeyValuePair<string, UnityTexEnv>[] m_TexEnvs = material.m_SavedProperties.m_TexEnvs;
+                long rgbPath = GetPathIDFromKeyValuePairs(m_TexEnvs, "_MainTex");
+                long alphaPath = GetPathIDFromKeyValuePairs(m_TexEnvs, "_AlphaTex");
+
+                Texture2D rgbTexture2D = GetByPathID<Texture2D>(objects, rgbPath);
+                Match match = GetMatchByPattern(rgbTexture2D.m_Name, $@"char_[\d]*_({spineInfo.ImageCodename})(b?)(\[alpha\])?");
+                if (!match.Success)
+                {
+                    //条件不满足,跳转到下一个循环迭代
+                    continue;
+                }
+                Image<Bgra32> rgb = rgbTexture2D.ConvertToImage();
+                Texture2D alphaTexture2D = GetByPathID<Texture2D>(objects, alphaPath);
+                Image<Bgra32> alpha = alphaTexture2D.ConvertToImage();
+                byte[] image = ImageHelper.ProcessImage(rgb, alpha);
+                #endregion
+
+                #region Skel
+                //尽管这里节点名称有"skeletonJSON",但是其返回的是二进制skel文件
+                dynamic skeletonJSON = skeletonDataDict["skeletonJSON"];
+                long skelPathID = (long)skeletonJSON["m_PathID"];
+
+                TextAsset skel = GetByPathID<TextAsset>(objects, skelPathID);
+                MemoryStream skelStream = new MemoryStream(skel.m_Script);
+                skelStream.Position = 0;
+                StreamReader skelReader = new StreamReader(skelStream);
+                #endregion
+
+                #region Atlas
+                long atlasPathID = (long)atlasFile["m_PathID"];
+                TextAsset atlas = GetByPathID<TextAsset>(objects, atlasPathID);
+                MemoryStream atlasStream = new MemoryStream(atlas.m_Script);
+                atlasStream.Position = 0;
+                StreamReader atlasReader = new StreamReader(atlasStream);
+                #endregion
+                return (atlasReader, skelReader, image);
+            }
+
+            throw new ArgumentException($"通过当前的{spineInfo.ImageCodename}找不到Spine动画");
+        }
+
+        private static (StreamReader, StreamReader, byte[]) GetBuildSpineAnimation(IEnumerable<AssetStudio.Object> objects, OperatorSpineInfo spineInfo)
+        {
+            byte[] image;
+            {
+                //防止变量外溢
+                Material material = GetFromObjects<Material>(objects, (obj) =>
+                    IsMaterialMatchBuildSpineAnimation(obj, spineInfo));
+                KeyValuePair<string, UnityTexEnv>[] m_TexEnvs = material.m_SavedProperties.m_TexEnvs;
+                long rgbPath = GetPathIDFromKeyValuePairs(m_TexEnvs, "_MainTex");
+                long alphaPath = GetPathIDFromKeyValuePairs(m_TexEnvs, "_AlphaTex");
+                Image<Bgra32> rgb = GetByPathID<Texture2D>(objects, rgbPath).ConvertToImage();
+                Image<Bgra32> alpha = GetByPathID<Texture2D>(objects, alphaPath).ConvertToImage();
+                image = ImageHelper.ProcessImage(rgb, alpha);
+            }
+            TextAsset atlas = GetFromObjects<TextAsset>(objects, (obj) =>
+            {
+                if (obj is TextAsset text)
+                {
+                    //有的皮肤(如阿),具有两个皮肤,但只能以后面的'#(数字)'区分,这种情况不按皮肤方式处理
+                    string pattern = spineInfo.IsSkin && !spineInfo.ImageCodename.Contains('#')
+                    ? $@"build_char_[\d]*_({spineInfo.ImageCodename})#([\d]*).atlas"
+                    : $@"build_char_[\d]*_({spineInfo.ImageCodename}).atlas";
+
+                    Match match = GetMatchByPattern(text.m_Name, pattern);
+                    return match.Success;
+                }
+                else
+                {
+                    return false;
+                }
             });
-            dynamic charAnimatorDict = characterAnimator.ToType();
-            dynamic frontOrBackDict = charAnimatorDict[type];
-            dynamic skeletonNode = frontOrBackDict["skeleton"];
-            long skeletonAnimationPathID = (long)skeletonNode["m_PathID"];
-            MonoBehaviour skeletonAnimation = GetByPathID<MonoBehaviour>(objects, skeletonAnimationPathID);
 
-            dynamic skeletonAnimationDict = skeletonAnimation.ToType();
-            dynamic skeletonAnimationRoot = skeletonAnimationDict["skeletonDataAsset"];
-            long skeletonDataPathID = (long)skeletonAnimationRoot["m_PathID"];
-            MonoBehaviour skeletonData = GetByPathID<MonoBehaviour>(objects, skeletonDataPathID);
+            TextAsset skel = GetFromObjects<TextAsset>(objects, (obj) =>
+            {
+                if (obj is TextAsset text)
+                {
+                    //有的皮肤(如阿),具有两个皮肤,但只能以后面的'#(数字)'区分,这种情况不按皮肤方式处理
+                    string pattern = spineInfo.IsSkin && !spineInfo.ImageCodename.Contains('#')
+                    ? $@"build_char_[\d]*_({spineInfo.ImageCodename})#([\d]*).skel"
+                    : $@"build_char_[\d]*_({spineInfo.ImageCodename}).skel";
 
-            dynamic skeletonDataDict = skeletonData.ToType();
-            #region Skel
-            //尽管这里节点名称有"skeletonJSON",但是其返回的是二进制skel文件
-            dynamic skeletonJSON = skeletonDataDict["skeletonJSON"];
-            long skelPathID = (long)skeletonJSON["m_PathID"];
-
-            TextAsset skel = GetByPathID<TextAsset>(objects, skelPathID);
-            MemoryStream skelStream = new MemoryStream(skel.m_Script);
-            skelStream.Position = 0;
-            StreamReader skelReader = new StreamReader(skelStream);
-            #endregion
-
-            dynamic atlasAssetsDict = skeletonDataDict["atlasAssets"];
-            dynamic atlasAssetsDictTarget = atlasAssetsDict[0];
-            long atlasAssetsPathID = (long)atlasAssetsDictTarget["m_PathID"];
-            MonoBehaviour altasAssets = GetByPathID<MonoBehaviour>(objects, atlasAssetsPathID);
-
-            dynamic atlasAssetsNode = altasAssets.ToType();
-            dynamic atlasFile = atlasAssetsNode["atlasFile"];
-            #region Atlas
-            long atlasPathID = (long)atlasFile["m_PathID"];
-            TextAsset atlas = GetByPathID<TextAsset>(objects, atlasPathID);
-            MemoryStream atlasStream = new MemoryStream(atlas.m_Script);
-            atlasStream.Position = 0;
+                    Match match = GetMatchByPattern(text.m_Name, pattern);
+                    return match.Success;
+                }
+                else
+                {
+                    return false;
+                }
+            });
+            MemoryStream atlasStream = new MemoryStream(atlas.m_Script)
+            {
+                Position = 0
+            };
             StreamReader atlasReader = new StreamReader(atlasStream);
-            #endregion
 
-            dynamic materials = atlasAssetsNode["materials"];
-            dynamic materialsTarget = materials[0];
-            #region Image
-            long materialPathID = (long)materialsTarget["m_PathID"];
-            Material material = GetByPathID<Material>(objects, materialPathID);
-            KeyValuePair<string, UnityTexEnv>[] m_TexEnvs = material.m_SavedProperties.m_TexEnvs;
-            long rgbPath = GetPathIDFromKeyValuePairs(m_TexEnvs, "_MainTex");
-            long alphaPath = GetPathIDFromKeyValuePairs(m_TexEnvs, "_AlphaTex");
-            Image<Bgra32> rgb = GetByPathID<Texture2D>(objects, rgbPath).ConvertToImage();
-            Image<Bgra32> alpha = GetByPathID<Texture2D>(objects, alphaPath).ConvertToImage();
-            byte[] image = ImageHelper.ProcessImage(rgb, alpha);
-            #endregion
+            MemoryStream skelStream = new MemoryStream(skel.m_Script)
+            {
+                Position = 0
+            };
+            StreamReader skelReader = new StreamReader(skelStream);
 
             return (atlasReader, skelReader, image);
         }
@@ -326,7 +366,7 @@ namespace ArknightsResources.Utility
             throw new ArgumentException($"在Material中找不到特定的资源\n使用的Key为:{key}");
         }
 
-        private static T GetByPathID<T>(IEnumerable<AssetStudio.Object> objects, long path)
+        private static T GetByPathID<T>(IEnumerable<AssetStudio.Object> objects, long path, bool returnDefault = false)
         {
             foreach (AssetStudio.Object obj in objects)
             {
@@ -336,10 +376,17 @@ namespace ArknightsResources.Utility
                 }
             }
 
-            throw new ArgumentException($"在包中找不到特定的{typeof(T).Name}\n使用的PathID为:{path}");
+            if (returnDefault)
+            {
+                return default;
+            }
+            else
+            {
+                throw new ArgumentException($"在包中找不到特定的{typeof(T).Name}\n使用的PathID为:{path}");
+            }
         }
 
-        private static T GetFromObjects<T>(IEnumerable<AssetStudio.Object> objects, Predicate<AssetStudio.Object> predicate)
+        private static T GetFromObjects<T>(IEnumerable<AssetStudio.Object> objects, Predicate<AssetStudio.Object> predicate, bool returnDefault = false)
         {
             foreach (var obj1 in objects)
             {
@@ -349,7 +396,14 @@ namespace ArknightsResources.Utility
                 }
             }
 
-            throw new ArgumentException($"在包中找不到特定的{typeof(T).Name}");
+            if (returnDefault)
+            {
+                return default;
+            }
+            else
+            {
+                throw new ArgumentException($"在包中找不到特定的{typeof(T).Name}");
+            }
         }
 
         private static unsafe Image<Bgra32> ConvertToImage(this Texture2D m_Texture2D)
@@ -397,5 +451,86 @@ namespace ArknightsResources.Utility
         {
             return Regex.Match(strToAnalyse, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         }
+
+        #region Fallback
+        //有的包Material文件中指向Texture2D的PathID为0,这里提供回退方式
+        private static void FallbackGetIllustFromAbPacksInternal(byte[] assetBundleFile, string imageCodename, bool isSkin, out Image<Bgra32> rgb, out Image<Bgra32> alpha)
+        {
+            alpha = null;
+            rgb = null;
+
+            using (MemoryStream stream = new MemoryStream(assetBundleFile))
+            {
+                AssetsManager assetsManager = new AssetsManager();
+                FileReader reader = new FileReader(".", stream);
+                assetsManager.LoadFile(".", reader);
+                IEnumerable<Texture2D> targets = from asset
+                                                 in assetsManager.assetsFileList.FirstOrDefault().Objects
+                                                             where FallbackIsTexture2DMatchOperatorImage(asset, imageCodename, isSkin)
+                                                             select (asset as Texture2D);
+
+                foreach (var item in targets)
+                {
+                    if (item.m_Name.Contains("[alpha]"))
+                    {
+                        alpha = item.ConvertToImage();
+                    }
+                    else
+                    {
+                        rgb = item.ConvertToImage();
+                    }
+                }
+            }
+        }
+
+        private static bool FallbackIsTexture2DMatchOperatorImage(AssetStudio.Object asset, string imageCodename, bool isSkin)
+        {
+            if (asset.type == ClassIDType.Texture2D)
+            {
+                Texture2D texture2D = (Texture2D)asset;
+                if (texture2D.m_Width <= 512 || texture2D.m_Height <= 512)
+                {
+                    return false;
+                }
+
+                Match match;
+                if (isSkin)
+                {
+                    if (imageCodename.Contains('#'))
+                    {
+                        //有的皮肤(如阿),具有两个皮肤,但只能以后面的'#(数字)'区分,所以这里进行了特殊处理
+                        match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({imageCodename})(b?)(\[alpha\])?",
+                                          RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                        if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[2].Value))
+                        {
+                            //如果match匹配成功,那么说明这个文件不符合要求,返回false
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        //如果match匹配成功,那么说明这个文件不符合要求,返回false
+                        match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({imageCodename})#([\d]*)(b?)(\[alpha\])?",
+                                          RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                        if (match.Success && !string.IsNullOrWhiteSpace(match.Groups[3].Value))
+                        {
+                            //如果match匹配成功,那么说明这个文件不符合要求,返回false
+                            return false;
+                        }
+                    }
+                }
+                else
+                {
+                    match = Regex.Match(texture2D.m_Name, $@"char_[\d]*_({imageCodename}\+?)(?!b)(\[alpha\])?");
+                }
+
+                return match.Success && string.Equals(match.Groups[1].Value, imageCodename);
+            }
+            else
+            {
+                return false;
+            }
+        }
+        #endregion
     }
 }
