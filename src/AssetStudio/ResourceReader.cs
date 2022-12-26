@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Buffers;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace AssetStudio
 {
@@ -79,15 +81,26 @@ namespace AssetStudio
             binaryReader.Read(buff, 0, (int)size);
         }
 
-#if NET6_0_OR_GREATER
         //Added
         public void GetData(Span<byte> buff)
         {
             var binaryReader = GetReader();
             binaryReader.BaseStream.Position = offset;
-            binaryReader.Read(buff);
-        }
+#if NET6_0_OR_GREATER
+            binaryReader.BaseStream.Read(buff);
+#else
+            byte[] sharedBuffer = ArrayPool<byte>.Shared.Rent(buff.Length);
+            try
+            {
+                int numRead = binaryReader.BaseStream.Read(sharedBuffer, 0, buff.Length);
+                new ReadOnlySpan<byte>(sharedBuffer, 0, numRead).CopyTo(buff);
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(sharedBuffer);
+            }
 #endif
+        }
 
         public void WriteData(string path)
         {
