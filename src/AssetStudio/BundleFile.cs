@@ -307,24 +307,24 @@ namespace AssetStudio
                             //Modified
                             //Here we use unmanaged memory and span to replace array pool
                             var compressedSize = (int)blockInfo.compressedSize;
-                            void* compressedBytesMemPtr = NativeMemory.AllocZeroed((nuint)compressedSize);
+                            void* compressedBytesMemPtr = InternalNativeMemory.Alloc(compressedSize);
                             Span<byte> compressedBytes = new Span<byte>(compressedBytesMemPtr, compressedSize);
                             reader.Read(compressedBytes);
 
                             var uncompressedSize = (int)blockInfo.uncompressedSize;
-                            void* uncompressedBytesMemPtr = NativeMemory.AllocZeroed((nuint)uncompressedSize);
+                            void* uncompressedBytesMemPtr = InternalNativeMemory.Alloc(uncompressedSize);
                             Span<byte> uncompressedBytes = new Span<byte>(uncompressedBytesMemPtr, uncompressedSize);
 
                             var numWrite = LZ4Codec.Decode(compressedBytes, uncompressedBytes);
                             if (numWrite != uncompressedSize)
                             {
-                                NativeMemory.Free(uncompressedBytesMemPtr);
-                                NativeMemory.Free(compressedBytesMemPtr);
+                                InternalNativeMemory.Free(uncompressedBytesMemPtr);
+                                InternalNativeMemory.Free(compressedBytesMemPtr);
                                 throw new IOException($"Lz4 decompression error, write {numWrite} bytes but expected {uncompressedSize} bytes");
                             }
                             blocksStream.Write(uncompressedBytes);
-                            NativeMemory.Free(uncompressedBytesMemPtr);
-                            NativeMemory.Free(compressedBytesMemPtr);
+                            InternalNativeMemory.Free(uncompressedBytesMemPtr);
+                            InternalNativeMemory.Free(compressedBytesMemPtr);
                             break;
 #else
                             var compressedSize = (int)blockInfo.compressedSize;

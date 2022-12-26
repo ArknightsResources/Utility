@@ -15,7 +15,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Runtime.InteropServices;
 using ArknightsResources.Operators.Models;
 using System.Runtime.CompilerServices;
 
@@ -414,12 +413,8 @@ namespace ArknightsResources.Utility
             }
 
             ResourceReader reader = m_Texture2D.image_data;
-#if NET6_0_OR_GREATER
-            void* memPtr = NativeMemory.AllocZeroed((nuint)reader.Size);
+            void* memPtr = InternalNativeMemory.Alloc(reader.Size);
             Span<byte> originData = new Span<byte>(memPtr, reader.Size);
-#else
-            byte[] originData = InternalArrayPools.ByteArrayPool.Rent(reader.Size);
-#endif
             reader.GetData(originData);
 
             byte[] data = ImageHelper.DecodeETC1(originData, m_Texture2D.m_Width, m_Texture2D.m_Height);
@@ -432,11 +427,7 @@ namespace ArknightsResources.Utility
             }
             finally
             {
-#if NET6_0_OR_GREATER
-                NativeMemory.Free(memPtr);
-#else
-                InternalArrayPools.ByteArrayPool.Return(originData);
-#endif
+                InternalNativeMemory.Free(memPtr);
             }
         }
 
