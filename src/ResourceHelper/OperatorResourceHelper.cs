@@ -140,6 +140,63 @@ namespace ArknightsResources.Utility
             return image;
         }
 
+        /// <summary>
+        /// 通过干员的立绘信息获取其立绘
+        /// </summary>
+        /// <param name="illustInfo">干员的立绘信息</param>
+        /// <returns>一个<see cref="Image{Bgra32}"/>,其中包含了干员的立绘</returns>
+        /// <exception cref="ArgumentException"/>
+        /// <exception cref="MissingManifestResourceException"/>
+        /// <exception cref="MissingSatelliteAssemblyException"/>
+#if NET7_0_OR_GREATER
+        public static Image<Bgra32> GetOperatorIllustrationReturnImage(OperatorIllustrationInfo illustInfo)
+#else
+        public Image<Bgra32> GetOperatorIllustrationReturnImage(OperatorIllustrationInfo illustInfo)
+#endif
+        {
+            if (ResourceManager is null)
+            {
+                throw new InvalidOperationException($"此类的属性 {nameof(ResourceManager)} 不可为空");
+            }
+
+            string fileName;
+            string imageCodename = illustInfo.ImageCodename.Split('_')[0].Split('#')[0];
+            if (illustInfo.Type == OperatorType.Skin)
+            {
+                fileName = $"operator_image_skin_{imageCodename}";
+            }
+            else
+            {
+                fileName = $"operator_image_{imageCodename}";
+            }
+
+            byte[] abPack = ResourceManager.GetObject(fileName) as byte[];
+            if (abPack is null)
+            {
+                throw new ArgumentException($@"使用给定的参数""{illustInfo}""时找不到资源");
+            }
+
+            Image<Bgra32> image = AssetBundleHelper.GetOperatorIllustrationReturnImage(abPack, illustInfo.ImageCodename, illustInfo.Type == OperatorType.Skin);
+            return image;
+        }
+
+        /// <summary>
+        /// 通过干员的立绘信息获取其立绘
+        /// </summary>
+        /// <param name="illustInfo">干员的立绘信息</param>
+        /// <returns>一个<see cref="Image{Bgra32}"/>,其中包含了干员的立绘</returns>
+        /// <exception cref="ArgumentException"/>
+        /// <exception cref="MissingManifestResourceException"/>
+        /// <exception cref="MissingSatelliteAssemblyException"/>
+#if NET7_0_OR_GREATER
+        public static async Task<Image<Bgra32>> GetOperatorIllustrationReturnImageAsync(OperatorIllustrationInfo illustInfo)
+#else
+        public async Task<Image<Bgra32>> GetOperatorIllustrationReturnImageAsync(OperatorIllustrationInfo illustInfo)
+#endif
+        {
+            return await Task.Run(() => GetOperatorIllustrationReturnImage(illustInfo));
+        }
+
         /// <inheritdoc/>
         /// <exception cref="ArgumentException"/>
         /// <exception cref="MissingManifestResourceException"/>

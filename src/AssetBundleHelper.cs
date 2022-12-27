@@ -69,6 +69,19 @@ namespace ArknightsResources.Utility
         }
 
         /// <summary>
+        /// 从指定的AssetBundle包中获取干员的立绘
+        /// </summary>
+        /// <param name="assetBundleFile">含有AssetBundle包内容的<seealso cref="byte"/>数组</param>
+        /// <param name="imageCodename">干员立绘的图像代号</param>
+        /// <param name="isSkin">指示干员立绘类型是否为皮肤</param>
+        /// <returns>包含干员立绘的<seealso cref="Image{Bgra32}"/></returns>
+        public static Image<Bgra32> GetOperatorIllustrationReturnImage(byte[] assetBundleFile, string imageCodename, bool isSkin)
+        {
+            GetIllustFromAbPacksInternal(assetBundleFile, imageCodename, isSkin, out Image<Bgra32> rgb, out Image<Bgra32> alpha);
+            return ImageHelper.ProcessImageReturnImage(rgb, alpha);
+        }
+
+        /// <summary>
         /// 从指定的AssetBundle包中获取干员的Spine动画
         /// </summary>
         /// <param name="assetBundleFile">含有AssetBundle包内容的<seealso cref="byte"/>数组</param>

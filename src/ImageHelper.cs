@@ -136,16 +136,16 @@ namespace ArknightsResources.Utility
         /// <param name="w">图片的宽度</param>
         /// <param name="h">图片的高度</param>
         /// <returns>包含解码图片的byte数组</returns>
-        public static byte[] DecodeETC1(ReadOnlySpan<byte> originData, int w, int h)
+        public static unsafe byte[] DecodeETC1(ReadOnlySpan<byte> originData, int w, int h)
         {
             byte[] imageData = new byte[w * h * 4];
 
             int num_blocks_x = (w + 3) / 4;
             int num_blocks_y = (h + 3) / 4;
             Span<int> buffer = stackalloc int[16];
-            byte[][] c = InternalArrayPools.ByteArrayArrayPool.Rent(2);
-            c[0] = InternalArrayPools.SmallByteArrayPool.Rent(3);
-            c[1] = InternalArrayPools.SmallByteArrayPool.Rent(3);
+            byte* c0 = stackalloc byte[3];
+            byte* c1 = stackalloc byte[3];
+            byte** c = stackalloc byte*[] { c0, c1 };
             int index = 0;
             for (int by = 0; by < num_blocks_y; by++)
             {
@@ -156,9 +156,6 @@ namespace ArknightsResources.Utility
                     CopyBlockBuffer(bx, by, w, h, 4, 4, buffer, imageData);
                 }
             }
-            InternalArrayPools.SmallByteArrayPool.Return(c[1], true);
-            InternalArrayPools.SmallByteArrayPool.Return(c[0], true);
-            InternalArrayPools.ByteArrayArrayPool.Return(c, true);
             return imageData;
         }
 
@@ -174,9 +171,9 @@ namespace ArknightsResources.Utility
             int num_blocks_x = (w + 3) / 4;
             int num_blocks_y = (h + 3) / 4;
             Span<int> buffer = stackalloc int[16];
-            byte[][] c = InternalArrayPools.ByteArrayArrayPool.Rent(2);
-            c[0] = InternalArrayPools.SmallByteArrayPool.Rent(3);
-            c[1] = InternalArrayPools.SmallByteArrayPool.Rent(3);
+            byte* c0 = stackalloc byte[3]; 
+            byte* c1 = stackalloc byte[3];
+            byte** c = stackalloc byte*[] { c0, c1 };
             int index = 0;
             for (int by = 0; by < num_blocks_y; by++)
             {
@@ -187,12 +184,9 @@ namespace ArknightsResources.Utility
                     CopyBlockBuffer(bx, by, w, h, 4, 4, buffer, imageData);
                 }
             }
-            InternalArrayPools.SmallByteArrayPool.Return(c[1], true);
-            InternalArrayPools.SmallByteArrayPool.Return(c[0], true);
-            InternalArrayPools.ByteArrayArrayPool.Return(c, true);
         }
 
-        private unsafe static void DecodeETC1Block(ReadOnlySpan<byte> data, Span<int> buffer, byte[][] c)
+        private unsafe static void DecodeETC1Block(ReadOnlySpan<byte> data, Span<int> buffer, byte** c)
         {
             Span<byte> code = stackalloc byte[] { (byte)(data[3] >> 5), (byte)(data[3] >> 2 & 7) };  // Table codewords
             Span<byte> table = Etc1SubblockTable[data[3] & 1];
@@ -301,7 +295,7 @@ namespace ArknightsResources.Utility
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int ApplicateColor(byte[] c, int m)
+        private static unsafe int ApplicateColor(byte* c, int m)
         {
             return Color(Clamp(c[0] + m), Clamp(c[1] + m), Clamp(c[2] + m), 255);
         }
