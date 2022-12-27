@@ -146,10 +146,16 @@ namespace ArknightsResources.Utility
         {
             if (obj is Material material)
             {
+                if (imageCodename.Contains('+'))
+                {
+                    imageCodename = imageCodename.Replace("+", @"\+");
+                }
+
                 //有的皮肤(如阿),具有两个皮肤,但只能以后面的'#(数字)'区分,这种情况不按皮肤方式处理
                 string pattern = isSkin && !imageCodename.Contains('#')
                     ? $@"illust_char_[\d]*_({imageCodename})#([\d]*)(?!b)_material"
                     : $@"illust_char_[\d]*_({imageCodename})(?!b)_material";
+
                 Match match = GetMatchByPattern(material.m_Name, pattern);
                 return match.Success;
             }
@@ -448,6 +454,8 @@ namespace ArknightsResources.Utility
 
         #region Fallback
         //有的包Material文件中指向Texture2D的PathID为0,这里提供回退方式
+        //回退方式的结果不一定准确
+
         private static void FallbackGetIllustFromAbPacksInternal(byte[] assetBundleFile, string imageCodename, bool isSkin, out Image<Bgra32> rgb, out Image<Bgra32> alpha)
         {
             alpha = null;

@@ -166,7 +166,7 @@ namespace ArknightsResources.Utility
         /// 解码ETC1图片
         /// </summary>
         /// <param name="originData">包含图片原始数据的Span&lt;byte&gt;</param>
-        /// <param name="imageData">一个指向byte数组的指针,其大小应为w * h * 4,该数组将在方法返回后填充干员立绘图片</param>
+        /// <param name="imageData">一个指向byte数组的指针,其大小应为w * h * 4,方法返回后该数组将被填充解码后图片数据</param>
         /// <param name="w">图片的宽度</param>
         /// <param name="h">图片的高度</param>
         public static unsafe void DecodeETC1(ReadOnlySpan<byte> originData, void* imageData, int w, int h)
