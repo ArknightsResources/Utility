@@ -33,6 +33,22 @@ namespace ArknightsResources.Utility.Test
                 }
             }
         }
+
+        [Fact]
+        public async void GetOperatorIllustrationReturnImageTest()
+        {
+            OperatorsList list = await OperatorResourceHelper.GetAllOperatorsAsync(ChineseSimplifiedCultureInfo);
+            foreach (var pair in list.Operators)
+            {
+                foreach (var illustInfo in pair.Value.Illustrations)
+                {
+                    var value = OperatorResourceHelper.GetOperatorIllustrationReturnImage(illustInfo);
+                    Assert.NotNull(value);
+                    Assert.NotEqual(0, value.Height);
+                    Assert.NotEqual(0, value.Width);
+                }
+            }
+        }
         
         [Fact]
         public async void GetOperatorSpineAnimationTest()

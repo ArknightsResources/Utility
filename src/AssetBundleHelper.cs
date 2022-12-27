@@ -69,6 +69,19 @@ namespace ArknightsResources.Utility
         }
 
         /// <summary>
+        /// 从指定的AssetBundle包中获取干员的立绘
+        /// </summary>
+        /// <param name="assetBundleFile">含有AssetBundle包内容的<seealso cref="byte"/>数组</param>
+        /// <param name="imageCodename">干员立绘的图像代号</param>
+        /// <param name="isSkin">指示干员立绘类型是否为皮肤</param>
+        /// <returns>包含干员立绘的<seealso cref="Image{Bgra32}"/></returns>
+        public static Image<Bgra32> GetOperatorIllustrationReturnImage(byte[] assetBundleFile, string imageCodename, bool isSkin)
+        {
+            GetIllustFromAbPacksInternal(assetBundleFile, imageCodename, isSkin, out Image<Bgra32> rgb, out Image<Bgra32> alpha);
+            return ImageHelper.ProcessImageReturnImage(rgb, alpha);
+        }
+
+        /// <summary>
         /// 从指定的AssetBundle包中获取干员的Spine动画
         /// </summary>
         /// <param name="assetBundleFile">含有AssetBundle包内容的<seealso cref="byte"/>数组</param>
@@ -108,6 +121,8 @@ namespace ArknightsResources.Utility
                 }
                 rgb = rgbTexture2D.ConvertToImage();
                 alpha = alphaTexture2D.ConvertToImage();
+                reader.Dispose();
+                assetsManager.Clear();
             }
         }
 
@@ -144,10 +159,16 @@ namespace ArknightsResources.Utility
         {
             if (obj is Material material)
             {
+                if (imageCodename.Contains('+'))
+                {
+                    imageCodename = imageCodename.Replace("+", @"\+");
+                }
+
                 //有的皮肤(如阿),具有两个皮肤,但只能以后面的'#(数字)'区分,这种情况不按皮肤方式处理
                 string pattern = isSkin && !imageCodename.Contains('#')
                     ? $@"illust_char_[\d]*_({imageCodename})#([\d]*)(?!b)_material"
                     : $@"illust_char_[\d]*_({imageCodename})(?!b)_material";
+
                 Match match = GetMatchByPattern(material.m_Name, pattern);
                 return match.Success;
             }
@@ -271,7 +292,7 @@ namespace ArknightsResources.Utility
 
                 TextAsset skel = GetByPathID<TextAsset>(objects, skelPathID);
                 MemoryStream skelStream = new MemoryStream(skel.m_Script);
-                skelStream.Position = 0;
+                skelStream.Seek(0, SeekOrigin.Begin);
                 StreamReader skelReader = new StreamReader(skelStream);
                 #endregion
 
@@ -279,7 +300,7 @@ namespace ArknightsResources.Utility
                 long atlasPathID = (long)atlasFile["m_PathID"];
                 TextAsset atlas = GetByPathID<TextAsset>(objects, atlasPathID);
                 MemoryStream atlasStream = new MemoryStream(atlas.m_Script);
-                atlasStream.Position = 0;
+                atlasStream.Seek(0, SeekOrigin.Begin);
                 StreamReader atlasReader = new StreamReader(atlasStream);
                 #endregion
                 return (atlasReader, skelReader, image);
@@ -337,16 +358,12 @@ namespace ArknightsResources.Utility
                     return false;
                 }
             });
-            MemoryStream atlasStream = new MemoryStream(atlas.m_Script)
-            {
-                Position = 0
-            };
+            MemoryStream atlasStream = new MemoryStream(atlas.m_Script);
+            atlasStream.Seek(0, SeekOrigin.Begin);
             StreamReader atlasReader = new StreamReader(atlasStream);
 
-            MemoryStream skelStream = new MemoryStream(skel.m_Script)
-            {
-                Position = 0
-            };
+            MemoryStream skelStream = new MemoryStream(skel.m_Script);
+            skelStream.Seek(0, SeekOrigin.Begin);
             StreamReader skelReader = new StreamReader(skelStream);
 
             return (atlasReader, skelReader, image);
@@ -417,17 +434,22 @@ namespace ArknightsResources.Utility
             Span<byte> originData = new Span<byte>(memPtr, reader.Size);
             reader.GetData(originData);
 
-            byte[] data = ImageHelper.DecodeETC1(originData, m_Texture2D.m_Width, m_Texture2D.m_Height);
+            int count = m_Texture2D.m_Height * m_Texture2D.m_Width * 4;
+            void* memPtrData = InternalNativeMemory.Alloc(count);
+            Span<byte> data = new Span<byte>(memPtrData, count);
+
+            ImageHelper.DecodeETC1(originData, memPtrData, m_Texture2D.m_Width, m_Texture2D.m_Height);
 
             try
             {
-                var image = Image.LoadPixelData<Bgra32>(data, m_Texture2D.m_Width, m_Texture2D.m_Height);
+                Image<Bgra32> image = Image.LoadPixelData<Bgra32>(data, m_Texture2D.m_Width, m_Texture2D.m_Height);
                 image.Mutate(x => x.Flip(FlipMode.Vertical));
                 return image;
             }
             finally
             {
                 InternalNativeMemory.Free(memPtr);
+                InternalNativeMemory.Free(memPtrData);
             }
         }
 
@@ -445,6 +467,8 @@ namespace ArknightsResources.Utility
 
         #region Fallback
         //有的包Material文件中指向Texture2D的PathID为0,这里提供回退方式
+        //回退方式的结果不一定准确
+
         private static void FallbackGetIllustFromAbPacksInternal(byte[] assetBundleFile, string imageCodename, bool isSkin, out Image<Bgra32> rgb, out Image<Bgra32> alpha)
         {
             alpha = null;
