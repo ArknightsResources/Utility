@@ -108,6 +108,8 @@ namespace ArknightsResources.Utility
                 }
                 rgb = rgbTexture2D.ConvertToImage();
                 alpha = alphaTexture2D.ConvertToImage();
+                reader.Dispose();
+                assetsManager.Clear();
             }
         }
 
@@ -271,7 +273,7 @@ namespace ArknightsResources.Utility
 
                 TextAsset skel = GetByPathID<TextAsset>(objects, skelPathID);
                 MemoryStream skelStream = new MemoryStream(skel.m_Script);
-                skelStream.Position = 0;
+                skelStream.Seek(0, SeekOrigin.Begin);
                 StreamReader skelReader = new StreamReader(skelStream);
                 #endregion
 
@@ -279,7 +281,7 @@ namespace ArknightsResources.Utility
                 long atlasPathID = (long)atlasFile["m_PathID"];
                 TextAsset atlas = GetByPathID<TextAsset>(objects, atlasPathID);
                 MemoryStream atlasStream = new MemoryStream(atlas.m_Script);
-                atlasStream.Position = 0;
+                atlasStream.Seek(0, SeekOrigin.Begin);
                 StreamReader atlasReader = new StreamReader(atlasStream);
                 #endregion
                 return (atlasReader, skelReader, image);
@@ -337,16 +339,12 @@ namespace ArknightsResources.Utility
                     return false;
                 }
             });
-            MemoryStream atlasStream = new MemoryStream(atlas.m_Script)
-            {
-                Position = 0
-            };
+            MemoryStream atlasStream = new MemoryStream(atlas.m_Script);
+            atlasStream.Seek(0, SeekOrigin.Begin);
             StreamReader atlasReader = new StreamReader(atlasStream);
 
-            MemoryStream skelStream = new MemoryStream(skel.m_Script)
-            {
-                Position = 0
-            };
+            MemoryStream skelStream = new MemoryStream(skel.m_Script);
+            skelStream.Seek(0, SeekOrigin.Begin);
             StreamReader skelReader = new StreamReader(skelStream);
 
             return (atlasReader, skelReader, image);
@@ -417,17 +415,22 @@ namespace ArknightsResources.Utility
             Span<byte> originData = new Span<byte>(memPtr, reader.Size);
             reader.GetData(originData);
 
-            byte[] data = ImageHelper.DecodeETC1(originData, m_Texture2D.m_Width, m_Texture2D.m_Height);
+            int count = m_Texture2D.m_Height * m_Texture2D.m_Width * 4;
+            void* memPtrData = InternalNativeMemory.Alloc(count);
+            Span<byte> data = new Span<byte>(memPtrData, count);
+
+            ImageHelper.DecodeETC1(originData, memPtrData, m_Texture2D.m_Width, m_Texture2D.m_Height);
 
             try
             {
-                var image = Image.LoadPixelData<Bgra32>(data, m_Texture2D.m_Width, m_Texture2D.m_Height);
+                Image<Bgra32> image = Image.LoadPixelData<Bgra32>(data, m_Texture2D.m_Width, m_Texture2D.m_Height);
                 image.Mutate(x => x.Flip(FlipMode.Vertical));
                 return image;
             }
             finally
             {
                 InternalNativeMemory.Free(memPtr);
+                InternalNativeMemory.Free(memPtrData);
             }
         }
 

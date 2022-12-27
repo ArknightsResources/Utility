@@ -84,7 +84,7 @@ namespace ArknightsResources.Utility
         public static byte[] ProcessImage(Image<Bgra32> rgb, Image<Bgra32> alpha)
         {
             MergeImages(rgb, alpha);
-            using (MemoryStream stream = new MemoryStream())
+            using (MemoryStream stream = new MemoryStream(rgb.Height * rgb.Width * 4))
             {
                 rgb.SaveAsPng(stream);
 
@@ -156,10 +156,40 @@ namespace ArknightsResources.Utility
                     CopyBlockBuffer(bx, by, w, h, 4, 4, buffer, imageData);
                 }
             }
-            InternalArrayPools.SmallByteArrayPool.Return(c[1]);
-            InternalArrayPools.SmallByteArrayPool.Return(c[0]);
-            InternalArrayPools.ByteArrayArrayPool.Return(c);
+            InternalArrayPools.SmallByteArrayPool.Return(c[1], true);
+            InternalArrayPools.SmallByteArrayPool.Return(c[0], true);
+            InternalArrayPools.ByteArrayArrayPool.Return(c, true);
             return imageData;
+        }
+
+        /// <summary>
+        /// 解码ETC1图片
+        /// </summary>
+        /// <param name="originData">包含图片原始数据的Span&lt;byte&gt;</param>
+        /// <param name="imageData">一个指向byte数组的指针,其大小应为w * h * 4,该数组将在方法返回后填充干员立绘图片</param>
+        /// <param name="w">图片的宽度</param>
+        /// <param name="h">图片的高度</param>
+        public static unsafe void DecodeETC1(ReadOnlySpan<byte> originData, void* imageData, int w, int h)
+        {
+            int num_blocks_x = (w + 3) / 4;
+            int num_blocks_y = (h + 3) / 4;
+            Span<int> buffer = stackalloc int[16];
+            byte[][] c = InternalArrayPools.ByteArrayArrayPool.Rent(2);
+            c[0] = InternalArrayPools.SmallByteArrayPool.Rent(3);
+            c[1] = InternalArrayPools.SmallByteArrayPool.Rent(3);
+            int index = 0;
+            for (int by = 0; by < num_blocks_y; by++)
+            {
+                for (int bx = 0; bx < num_blocks_x; bx++, index += 8)
+                {
+                    ReadOnlySpan<byte> slice = originData.Slice(index, 8);
+                    DecodeETC1Block(slice, buffer, c);
+                    CopyBlockBuffer(bx, by, w, h, 4, 4, buffer, imageData);
+                }
+            }
+            InternalArrayPools.SmallByteArrayPool.Return(c[1], true);
+            InternalArrayPools.SmallByteArrayPool.Return(c[0], true);
+            InternalArrayPools.ByteArrayArrayPool.Return(c, true);
         }
 
         private unsafe static void DecodeETC1Block(ReadOnlySpan<byte> data, Span<int> buffer, byte[][] c)
@@ -229,15 +259,44 @@ namespace ArknightsResources.Utility
             {
                 ReadOnlySpan<int> slice = buf.Slice(index, bw);
                 RuntimeHelpers.EnsureSufficientExecutionStack();
-#pragma warning disable 
-                int* sliceArray = stackalloc int[slice.Length];
+#pragma warning disable CA2014
+                int* slicePtr = stackalloc int[slice.Length];
 #pragma warning restore CA2014
-                IntPtr ptr = new IntPtr(sliceArray);
-                for (int i = 0; i < slice.Length; i++)
-                {
-                    sliceArray[i] = slice[i];
-                }
+                IntPtr ptr = new IntPtr(slicePtr);
+                Span<int> sliceSpan = new Span<int>(slicePtr, slice.Length);
+                slice.CopyTo(sliceSpan);
                 Marshal.Copy(ptr, imageData, (y * w + x) * 4, xl);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static unsafe void CopyBlockBuffer(int bx, int by, int w, int h, int bw, int bh, ReadOnlySpan<int> buf, void* imageData)
+        {
+            int x = bw * bx;
+            int xl;
+
+            if (bw * (bx + 1) > w)
+            {
+                xl = (w - (bw * bx)) * 4;
+            }
+            else
+            {
+                xl = (bw) * 4;
+            }
+
+            int index = 0;
+            for (int y = by * bh; index < buf.Length && y < h; index += bw, y++)
+            {
+                ReadOnlySpan<int> slice = buf.Slice(index, bw);
+                RuntimeHelpers.EnsureSufficientExecutionStack();
+#pragma warning disable CA2014
+                int* slicePtr = stackalloc int[slice.Length];
+#pragma warning restore CA2014
+                Span<int> sliceSpan = new Span<int>(slicePtr, slice.Length);
+                slice.CopyTo(sliceSpan);
+
+                void* data = Unsafe.Add<byte>(imageData, (y * w + x) * 4);
+                Buffer.MemoryCopy(slicePtr, data, w * h * 4, xl);
             }
         }
 
