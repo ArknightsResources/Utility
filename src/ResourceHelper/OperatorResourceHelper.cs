@@ -227,7 +227,7 @@ namespace ArknightsResources.Utility
                 }
                 else
                 {
-                    fileName = $"operator_image_spine_{imageCodename}";
+                    fileName = $"operator_image_{imageCodename}";
                 }
             }
 
@@ -256,7 +256,7 @@ namespace ArknightsResources.Utility
         public async Task<(TextReader, TextReader, byte[])> GetOperatorSpineAnimationAsync(OperatorSpineInfo spineInfo)
 #endif
         {
-            return await Task.Run(() => GetOperatorSpineAnimationAsync(spineInfo));
+            return await Task.Run(() => GetOperatorSpineAnimation(spineInfo));
         }
 
         /// <inheritdoc/>
