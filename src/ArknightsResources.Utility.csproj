@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+    <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net6.0;net7.0</TargetFrameworks>
@@ -16,9 +16,9 @@
     <PackageIcon>icon.png</PackageIcon>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IsTrimmable>true</IsTrimmable>
-    <Version>0.1.10.0-alpha</Version>
-    <AssemblyVersion>0.1.10.0</AssemblyVersion>
-    <FileVersion>0.1.10.0</FileVersion>
+    <Version>0.1.11.0-alpha</Version>
+    <AssemblyVersion>0.1.11.0</AssemblyVersion>
+    <FileVersion>0.1.11.0</FileVersion>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -37,8 +37,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ArknightsResources.CustomResourceHelpers" Version="0.1.8-alpha" />
-    <PackageReference Include="K4os.Compression.LZ4" Version="1.2.16" />
+    <PackageReference Include="ArknightsResources.CustomResourceHelpers" Version="0.1.9-alpha" />
+    <PackageReference Include="K4os.Compression.LZ4" Version="1.3.5" />
     <PackageReference Include="SixLabors.ImageSharp" Version="2.1.3" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" Condition="$(TargetFramework) == 'netstandard2.0'" />
     <PackageReference Include="System.Memory" Version="4.5.5" Condition="$(TargetFramework) == 'netstandard2.0'" />
