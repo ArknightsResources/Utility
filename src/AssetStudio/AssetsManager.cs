@@ -29,9 +29,9 @@ namespace AssetStudio
         }
 
         //Added
-        public void LoadFile(string path, FileReader reader)
+        internal void LoadFileModified(string path, FileReader reader)
         {
-            Load(path, reader);
+            LoadModified(path, reader);
         }
 
         public void LoadFolder(string path)
@@ -67,25 +67,69 @@ namespace AssetStudio
         }
 
         //Added
-        private void Load(string path, FileReader reader)
+        private void LoadModified(string path, FileReader reader)
         {
             importFiles.Add(path);
             importFilesHash.Add(Path.GetFileName(path));
 
-            Progress.Reset();
             //use a for loop because list size can change
             for (var i = 0; i < importFiles.Count; i++)
             {
                 LoadFile(reader);
-                Progress.Report(i + 1, importFiles.Count);
             }
 
             importFiles.Clear();
             importFilesHash.Clear();
             assetsFileListHash.Clear();
 
-            ReadAssets();
-            ProcessAssets();
+            ReadAssetsModified();
+        }
+
+        //Added
+        private void ReadAssetsModified()
+        {
+            foreach (var assetsFile in assetsFileList)
+            {
+                foreach (var objectInfo in assetsFile.m_Objects)
+                {
+                    var objectReader = new ObjectReader(assetsFile.reader, assetsFile, objectInfo);
+                    try
+                    {
+                        //与原来的代码相比，我们移除了读取其他对象的代码
+                        //因为本库不会使用这些对象，因此实例化这些对象反而会增大GC压力
+                        Object obj;
+                        switch (objectReader.type)
+                        {
+                            case ClassIDType.Material:
+                                obj = new Material(objectReader);
+                                break;
+                            case ClassIDType.MonoBehaviour:
+                                obj = new MonoBehaviour(objectReader);
+                                break;
+                            case ClassIDType.MonoScript:
+                                obj = new MonoScript(objectReader);
+                                break;
+                            case ClassIDType.TextAsset:
+                                obj = new TextAsset(objectReader);
+                                break;
+                            case ClassIDType.Texture2D:
+                                obj = new Texture2D(objectReader);
+                                break;
+                            default:
+                                obj = null;
+                                break;
+                        }
+
+                        if (obj != null)
+                        {
+                            assetsFile.AddObject(obj);
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
         }
 
         private void LoadFile(string fullName)

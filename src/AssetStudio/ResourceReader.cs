@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
+using ArknightsResources.Utility;
 
 namespace AssetStudio
 {
@@ -82,24 +83,33 @@ namespace AssetStudio
         }
 
         //Added
-        public void GetData(Span<byte> buff)
+        internal unsafe void GetData(Span<byte> buff)
         {
-            var binaryReader = GetReader();
+            BinaryReader binaryReader = GetReader();
             binaryReader.BaseStream.Position = offset;
-#if NET6_0_OR_GREATER
-            binaryReader.BaseStream.Read(buff);
-#else
-            byte[] sharedBuffer = ArrayPool<byte>.Shared.Rent(buff.Length);
+            byte* bufPtr = (byte*)InternalNativeMemory.Alloc(buff.Length);
             try
             {
-                int numRead = binaryReader.BaseStream.Read(sharedBuffer, 0, buff.Length);
-                new ReadOnlySpan<byte>(sharedBuffer, 0, numRead).CopyTo(buff);
+                int numRead = 0;
+                for (int i = 0; i < buff.Length; i++)
+                {
+                    int byteVal = binaryReader.ReadByte();
+                    if (byteVal == -1)
+                    {
+                        break;
+                    }
+
+                    byte value = (byte)byteVal;
+                    bufPtr[i] = value;
+                    numRead++;
+                }
+
+                new ReadOnlySpan<byte>(bufPtr, numRead).CopyTo(buff);
             }
             finally
             {
-                ArrayPool<byte>.Shared.Return(sharedBuffer);
+                InternalNativeMemory.Free(bufPtr);
             }
-#endif
         }
 
         public void WriteData(string path)

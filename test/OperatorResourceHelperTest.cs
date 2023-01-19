@@ -6,16 +6,12 @@ namespace ArknightsResources.Utility.Test
     {
         private readonly CultureInfo ChineseSimplifiedCultureInfo = new("zh-CN", false);
 
-        public OperatorResourceHelperTest()
-        {
-            OperatorResourceHelper.ResourceManager = OperatorResources.ResourceManager;
-        }
-
         [Fact]
         public async void GetAllOperatorTest()
         {
-            OperatorsList value = OperatorResourceHelper.GetAllOperators(ChineseSimplifiedCultureInfo);
-            OperatorsList valueAsync = await OperatorResourceHelper.GetAllOperatorsAsync(ChineseSimplifiedCultureInfo);
+            OperatorResourceHelper operatorResourceHelper = new(OperatorResources.ResourceManager);
+            OperatorsList value = operatorResourceHelper.GetAllOperators(ChineseSimplifiedCultureInfo);
+            OperatorsList valueAsync = await operatorResourceHelper.GetAllOperatorsAsync(ChineseSimplifiedCultureInfo);
             Assert.NotEmpty(value.Operators);
             Assert.NotEmpty(valueAsync.Operators);
         }
@@ -23,12 +19,13 @@ namespace ArknightsResources.Utility.Test
         [Fact]
         public async void GetOperatorIllustrationTest()
         {
-            OperatorsList list = await OperatorResourceHelper.GetAllOperatorsAsync(ChineseSimplifiedCultureInfo);
+            OperatorResourceHelper operatorResourceHelper = new(OperatorResources.ResourceManager);
+            OperatorsList list = await operatorResourceHelper.GetAllOperatorsAsync(ChineseSimplifiedCultureInfo);
             foreach (var pair in list.Operators)
             {
                 foreach (var illustInfo in pair.Value.Illustrations)
                 {
-                    byte[] value = OperatorResourceHelper.GetOperatorIllustration(illustInfo);
+                    byte[] value = operatorResourceHelper.GetOperatorIllustration(illustInfo);
                     Assert.NotEmpty(value);
                 }
             }
@@ -37,12 +34,13 @@ namespace ArknightsResources.Utility.Test
         [Fact]
         public async void GetOperatorIllustrationReturnImageTest()
         {
-            OperatorsList list = await OperatorResourceHelper.GetAllOperatorsAsync(ChineseSimplifiedCultureInfo);
+            OperatorResourceHelper operatorResourceHelper = new(OperatorResources.ResourceManager);
+            OperatorsList list = await operatorResourceHelper.GetAllOperatorsAsync(ChineseSimplifiedCultureInfo);
             foreach (var pair in list.Operators)
             {
                 foreach (var illustInfo in pair.Value.Illustrations)
                 {
-                    var value = OperatorResourceHelper.GetOperatorIllustrationReturnImage(illustInfo);
+                    var value = operatorResourceHelper.GetOperatorIllustrationReturnImage(illustInfo);
                     Assert.NotNull(value);
                     Assert.NotEqual(0, value.Height);
                     Assert.NotEqual(0, value.Width);
@@ -53,7 +51,8 @@ namespace ArknightsResources.Utility.Test
         [Fact]
         public async void GetOperatorSpineAnimationTest()
         {
-            OperatorsList list = await OperatorResourceHelper.GetAllOperatorsAsync(ChineseSimplifiedCultureInfo);
+            OperatorResourceHelper operatorResourceHelper = new(OperatorResources.ResourceManager);
+            OperatorsList list = await operatorResourceHelper.GetAllOperatorsAsync(ChineseSimplifiedCultureInfo);
             foreach (var pair in list.Operators)
             {
                 foreach (var illustInfo in pair.Value.Illustrations)
@@ -64,7 +63,7 @@ namespace ArknightsResources.Utility.Test
                         : pair.Value.Codename;
 
                     OperatorSpineInfo spineInfo = new(OperatorSpineModelSet.Build, imageCodename, isSkin);
-                    var value = OperatorResourceHelper.GetOperatorSpineAnimation(spineInfo);
+                    var value = operatorResourceHelper.GetOperatorSpineAnimation(spineInfo);
 
                     Assert.NotNull(value.Item1);
                     Assert.NotNull(value.Item2);
@@ -76,7 +75,8 @@ namespace ArknightsResources.Utility.Test
         [Fact]
         public void GetOperatorTest()
         {
-            Operator op = OperatorResourceHelper.GetOperator("阿米娅", ChineseSimplifiedCultureInfo);
+            OperatorResourceHelper operatorResourceHelper = new(OperatorResources.ResourceManager);
+            Operator op = operatorResourceHelper.GetOperator("阿米娅", ChineseSimplifiedCultureInfo);
             Assert.Equal("阿米娅", op.Name);
             Assert.NotEmpty(op.Profiles);
             Assert.NotEqual(0, op.Birthday!.Value.Month);
@@ -86,7 +86,8 @@ namespace ArknightsResources.Utility.Test
         [Fact]
         public void GetOperatorWithCodenameTest()
         {
-            Operator op = OperatorResourceHelper.GetOperatorWithCodename("gdglow", ChineseSimplifiedCultureInfo);
+            OperatorResourceHelper operatorResourceHelper = new(OperatorResources.ResourceManager);
+            Operator op = operatorResourceHelper.GetOperatorWithCodename("gdglow", ChineseSimplifiedCultureInfo);
             Assert.Equal("澄闪", op.Name);
             Assert.NotEmpty(op.Profiles);
             Assert.NotEqual(0, op.Birthday!.Value.Month);
@@ -96,7 +97,8 @@ namespace ArknightsResources.Utility.Test
         [Fact]
         public async void GetOperatorAsyncTest()
         {
-            Operator op = await OperatorResourceHelper.GetOperatorAsync("阿米娅", ChineseSimplifiedCultureInfo);
+            OperatorResourceHelper operatorResourceHelper = new(OperatorResources.ResourceManager);
+            Operator op = await operatorResourceHelper.GetOperatorAsync("阿米娅", ChineseSimplifiedCultureInfo);
             Assert.Equal("阿米娅", op.Name);
             Assert.NotEmpty(op.Profiles);
             Assert.NotEqual(0, op.Birthday!.Value.Month);
@@ -106,7 +108,8 @@ namespace ArknightsResources.Utility.Test
         [Fact]
         public async void GetOperatorWithCodenameAsyncTest()
         {
-            Operator op = await OperatorResourceHelper.GetOperatorWithCodenameAsync("gdglow", ChineseSimplifiedCultureInfo);
+            OperatorResourceHelper operatorResourceHelper = new(OperatorResources.ResourceManager);
+            Operator op = await operatorResourceHelper.GetOperatorWithCodenameAsync("gdglow", ChineseSimplifiedCultureInfo);
             Assert.Equal("澄闪", op.Name);
             Assert.NotEmpty(op.Profiles);
             Assert.NotEqual(0, op.Birthday!.Value.Month);
@@ -116,21 +119,24 @@ namespace ArknightsResources.Utility.Test
         [Fact]
         public void GetAssetBundleFileTest()
         {
-            byte[] ab = OperatorResourceHelper.GetAssetBundleFile(new OperatorIllustrationInfo(string.Empty, string.Empty, "amiya", OperatorType.Elite0, string.Empty));
+            OperatorResourceHelper operatorResourceHelper = new(OperatorResources.ResourceManager);
+            byte[] ab = operatorResourceHelper.GetAssetBundleFile(new OperatorIllustrationInfo(string.Empty, string.Empty, "amiya", OperatorType.Elite0, string.Empty));
             Assert.NotEmpty(ab);
         }
 
         [Fact]
         public void GetOperatorCodenameMappingTest()
         {
-            Dictionary<string, string> mapping = OperatorResourceHelper.GetOperatorCodenameMapping(ChineseSimplifiedCultureInfo);
+            OperatorResourceHelper operatorResourceHelper = new(OperatorResources.ResourceManager);
+            Dictionary<string, string> mapping = operatorResourceHelper.GetOperatorCodenameMapping(ChineseSimplifiedCultureInfo);
             Assert.NotEmpty(mapping);
         }
 
         [Fact]
         public void GetOperatorSkinMappingTest()
         {
-            Dictionary<string, IList<string>> mapping = OperatorResourceHelper.GetOperatorSkinMapping();
+            OperatorResourceHelper operatorResourceHelper = new(OperatorResources.ResourceManager);
+            Dictionary<string, IList<string>> mapping = operatorResourceHelper.GetOperatorSkinMapping();
             Assert.NotEmpty(mapping);
         }
     }

@@ -13,7 +13,6 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
 using System.Text.Unicode;
 using System.Threading.Tasks;
 using ArknightsResources.CustomResourceHelpers;
@@ -24,36 +23,30 @@ using SixLabors.ImageSharp;
 namespace ArknightsResources.Utility
 {
     /// <summary>
-    /// 为ArknightsResources.Operators.Resources的资源访问提供帮助的类
+    /// 为ArknightsResources.Operators.Resources的资源访问提供帮助的结构
     /// </summary>
-    public class OperatorResourceHelper : IOperatorInfoGetter, IOperatorIllustrationGetter, IOperatorSpineAnimationGetter
+    public readonly struct OperatorResourceHelper : IOperatorInfoGetter, IOperatorIllustrationGetter, IOperatorSpineAnimationGetter
     {
-#if !NET7_0_OR_GREATER
-        /// <summary>
-        /// <seealso cref="OperatorResourceHelper"/>的实例
-        /// </summary>
-        public static readonly OperatorResourceHelper Instance = new OperatorResourceHelper();
-#endif
-
         /// <summary>
         /// 当前ResourceHelper使用的<see cref="System.Resources.ResourceManager"/>
         /// </summary>
-#if NET7_0_OR_GREATER
-        public static ResourceManager ResourceManager { get; set; }
-#else
-        public ResourceManager ResourceManager { get; set; }
-#endif
+        public ResourceManager ResourceManager { get; }
+
+        /// <summary>
+        /// 使用指定的参数构造<seealso cref="OperatorResourceHelper"/>的新实例
+        /// </summary>
+        /// <param name="resourceManager">该ResourcesHelper使用的<see cref="System.Resources.ResourceManager"/></param>
+        public OperatorResourceHelper(ResourceManager resourceManager)
+        {
+            ResourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
+        }
 
         /// <summary>
         /// 获取干员内部代号与干员名称的映射表
         /// </summary>
         /// <param name="cultureInfo">干员名称所用语言</param>
         /// <returns>Key为干员内部代号,Value为干员名称的Dictionary&lt;string, string&gt;</returns>
-#if NET7_0_OR_GREATER
-        public static Dictionary<string, string> GetOperatorCodenameMapping(CultureInfo cultureInfo)
-#else
         public Dictionary<string, string> GetOperatorCodenameMapping(CultureInfo cultureInfo)
-#endif
         {
             if (ResourceManager is null)
             {
@@ -74,11 +67,7 @@ namespace ArknightsResources.Utility
         /// 获取干员内部代号与干员皮肤列表的映射表
         /// </summary>
         /// <returns>Key为干员内部代号,Value为干员皮肤列表的Dictionary&lt;string, IList&lt;string&gt;&gt;</returns>
-#if NET7_0_OR_GREATER
-        public static Dictionary<string, IList<string>> GetOperatorSkinMapping()
-#else
         public Dictionary<string, IList<string>> GetOperatorSkinMapping()
-#endif
         {
             if (ResourceManager is null)
             {
@@ -108,11 +97,7 @@ namespace ArknightsResources.Utility
         /// <exception cref="ArgumentException"/>
         /// <exception cref="MissingManifestResourceException"/>
         /// <exception cref="MissingSatelliteAssemblyException"/>
-#if NET7_0_OR_GREATER
-        public static byte[] GetOperatorIllustration(OperatorIllustrationInfo illustInfo)
-#else
         public byte[] GetOperatorIllustration(OperatorIllustrationInfo illustInfo)
-#endif
         {
             if (ResourceManager is null)
             {
@@ -148,11 +133,7 @@ namespace ArknightsResources.Utility
         /// <exception cref="ArgumentException"/>
         /// <exception cref="MissingManifestResourceException"/>
         /// <exception cref="MissingSatelliteAssemblyException"/>
-#if NET7_0_OR_GREATER
-        public static Image<Bgra32> GetOperatorIllustrationReturnImage(OperatorIllustrationInfo illustInfo)
-#else
         public Image<Bgra32> GetOperatorIllustrationReturnImage(OperatorIllustrationInfo illustInfo)
-#endif
         {
             if (ResourceManager is null)
             {
@@ -188,24 +169,17 @@ namespace ArknightsResources.Utility
         /// <exception cref="ArgumentException"/>
         /// <exception cref="MissingManifestResourceException"/>
         /// <exception cref="MissingSatelliteAssemblyException"/>
-#if NET7_0_OR_GREATER
-        public static async Task<Image<Bgra32>> GetOperatorIllustrationReturnImageAsync(OperatorIllustrationInfo illustInfo)
-#else
         public async Task<Image<Bgra32>> GetOperatorIllustrationReturnImageAsync(OperatorIllustrationInfo illustInfo)
-#endif
         {
-            return await Task.Run(() => GetOperatorIllustrationReturnImage(illustInfo));
+            OperatorResourceHelper self = this;
+            return await Task.Run(() => self.GetOperatorIllustrationReturnImage(illustInfo));
         }
 
         /// <inheritdoc/>
         /// <exception cref="ArgumentException"/>
         /// <exception cref="MissingManifestResourceException"/>
         /// <exception cref="MissingSatelliteAssemblyException"/>
-#if NET7_0_OR_GREATER
-        public static (TextReader, TextReader, byte[]) GetOperatorSpineAnimation(OperatorSpineInfo spineInfo)
-#else
         public (TextReader, TextReader, byte[]) GetOperatorSpineAnimation(OperatorSpineInfo spineInfo)
-#endif
         {
             if (ResourceManager is null)
             {
@@ -250,32 +224,22 @@ namespace ArknightsResources.Utility
         }
 
         /// <inheritdoc/>
-#if NET7_0_OR_GREATER
-        public static async Task<(TextReader, TextReader, byte[])> GetOperatorSpineAnimationAsync(OperatorSpineInfo spineInfo)
-#else
         public async Task<(TextReader, TextReader, byte[])> GetOperatorSpineAnimationAsync(OperatorSpineInfo spineInfo)
-#endif
         {
-            return await Task.Run(() => GetOperatorSpineAnimation(spineInfo));
+            OperatorResourceHelper self = this;
+            return await Task.Run(() => self.GetOperatorSpineAnimation(spineInfo));
         }
 
         /// <inheritdoc/>
-#if NET7_0_OR_GREATER
-        public static async Task<byte[]> GetOperatorIllustrationAsync(OperatorIllustrationInfo illustInfo)
-#else
         public async Task<byte[]> GetOperatorIllustrationAsync(OperatorIllustrationInfo illustInfo)
-#endif
         {
-            return await Task.Run(() => GetOperatorIllustration(illustInfo));
+            OperatorResourceHelper self = this;
+            return await Task.Run(() => self.GetOperatorIllustration(illustInfo));
         }
 
         /// <inheritdoc/>
         /// <exception cref="ArgumentException"/>
-#if NET7_0_OR_GREATER
-        public static Operator GetOperator(string operatorName, CultureInfo cultureInfo)
-#else
         public Operator GetOperator(string operatorName, CultureInfo cultureInfo)
-#endif
         {
             if (ResourceManager is null)
             {
@@ -306,11 +270,7 @@ namespace ArknightsResources.Utility
         }
 
         /// <inheritdoc />
-#if NET7_0_OR_GREATER
-        public static async Task<Operator> GetOperatorAsync(string operatorName, CultureInfo cultureInfo)
-#else
         public async Task<Operator> GetOperatorAsync(string operatorName, CultureInfo cultureInfo)
-#endif
         {
             if (ResourceManager is null)
             {
@@ -324,7 +284,8 @@ namespace ArknightsResources.Utility
             
             try
             {
-                return await Task.Run(() => GetOperatorInternal(operatorName, cultureInfo,ResourceManager));
+                OperatorResourceHelper self = this;
+                return await Task.Run(() => GetOperatorInternal(operatorName, cultureInfo, self.ResourceManager));
             }
             catch (InvalidOperationException ex)
             {
@@ -338,11 +299,7 @@ namespace ArknightsResources.Utility
 
         /// <inheritdoc/>
         /// <exception cref="ArgumentException"/>
-#if NET7_0_OR_GREATER
-        public static Operator GetOperatorWithCodename(string codename, CultureInfo cultureInfo)
-#else
         public Operator GetOperatorWithCodename(string codename, CultureInfo cultureInfo)
-#endif
         {
             if (string.IsNullOrWhiteSpace(codename))
             {
@@ -369,11 +326,7 @@ namespace ArknightsResources.Utility
         }
 
         /// <inheritdoc/>
-#if NET7_0_OR_GREATER
-        public static async Task<Operator> GetOperatorWithCodenameAsync(string codename, CultureInfo cultureInfo)
-#else
         public async Task<Operator> GetOperatorWithCodenameAsync(string codename, CultureInfo cultureInfo)
-#endif
         {
             if (ResourceManager is null)
             {
@@ -387,7 +340,8 @@ namespace ArknightsResources.Utility
 
             try
             {
-                return await Task.Run(() => GetOperatorWithCodenameInternal(codename, cultureInfo, ResourceManager));
+                OperatorResourceHelper self = this;
+                return await Task.Run(() => GetOperatorWithCodenameInternal(codename, cultureInfo, self.ResourceManager));
             }
             catch (InvalidOperationException ex)
             {
@@ -396,11 +350,7 @@ namespace ArknightsResources.Utility
         }
 
         /// <inheritdoc/>
-#if NET7_0_OR_GREATER
-        public static OperatorsList GetAllOperators(CultureInfo cultureInfo)
-#else
         public OperatorsList GetAllOperators(CultureInfo cultureInfo)
-#endif
         {
             if (ResourceManager is null)
             {
@@ -411,18 +361,14 @@ namespace ArknightsResources.Utility
         }
 
         /// <inheritdoc/>
-#if NET7_0_OR_GREATER
-        public static async Task<OperatorsList> GetAllOperatorsAsync(CultureInfo cultureInfo)
-#else
         public async Task<OperatorsList> GetAllOperatorsAsync(CultureInfo cultureInfo)
-#endif
         {
             if (ResourceManager is null)
             {
                 throw new InvalidOperationException($"此类的属性 {nameof(ResourceManager)} 不可为空");
             }
-
-            return await Task.Run(() => GetAllOperatorsInternal(cultureInfo, ResourceManager));
+            OperatorResourceHelper self = this;
+            return await Task.Run(() => GetAllOperatorsInternal(cultureInfo, self.ResourceManager));
         }
 
         /// <summary>
@@ -431,11 +377,7 @@ namespace ArknightsResources.Utility
         /// <param name="illustInfo">干员的立绘信息</param>
         /// <returns>一个byte数组,其中包含了AssetBundle文件的数据</returns>
         /// <exception cref="ArgumentException"/>
-#if NET7_0_OR_GREATER
-        public static byte[] GetAssetBundleFile(OperatorIllustrationInfo illustInfo)
-#else
         public byte[] GetAssetBundleFile(OperatorIllustrationInfo illustInfo)
-#endif
         {
             if (ResourceManager is null)
             {

@@ -3,7 +3,6 @@
 #pragma warning disable IDE0063
 #pragma warning disable IDE0066
 #endif
-
 #pragma warning disable IDE0017
 
 using System;
@@ -26,6 +25,7 @@ namespace ArknightsResources.Utility
     public static class AssetBundleHelper
     {
         // 本类使用AssetStudio项目来读取AssetBundle文件
+        // 为了本库的需要，我们修改了AssetStudio项目
         // AssetStudio项目地址:https://github.com/Perfare/AssetStudio
         // 下面附上AssetStudio项目的许可证原文
         #region LICENSE
@@ -100,7 +100,7 @@ namespace ArknightsResources.Utility
                 AssetsManager assetsManager = new AssetsManager();
                 //We don't really need file path
                 FileReader reader = new FileReader(".", stream);
-                assetsManager.LoadFile(".", reader);
+                assetsManager.LoadFileModified(".", reader);
                 List<AssetStudio.Object> objects = assetsManager.assetsFileList.FirstOrDefault().Objects;
                 Material material = GetFromObjects<Material>(objects, (obj) => IsMaterialMatchOperatorIllust(obj, imageCodename, isSkin));
 
@@ -112,15 +112,19 @@ namespace ArknightsResources.Utility
                 Texture2D alphaTexture2D = GetByPathID<Texture2D>(objects, alphaPath, true);
                 if (rgbTexture2D is null || alphaTexture2D is null)
                 {
-                    FallbackGetIllustFromAbPacksInternal(assetBundleFile, imageCodename, isSkin, out rgb, out alpha);
+                    //有的包Material文件中指向Texture2D的PathID为0,这里使用回退方式
+                    //回退方式的结果不一定准确
+                    FallbackGetIllustFromAbPacksInternal(objects, imageCodename, isSkin, out rgb, out alpha);
+
                     if (rgb is null || alpha is null)
                     {
-                        throw new ArgumentException("无法在包中解析出立绘文件");
+                        throw new ArgumentException("无法从包中解析出立绘文件");
                     }
                     return;
                 }
                 rgb = rgbTexture2D.ConvertToImage();
                 alpha = alphaTexture2D.ConvertToImage();
+
                 reader.Dispose();
                 assetsManager.Clear();
             }
@@ -133,7 +137,7 @@ namespace ArknightsResources.Utility
                 AssetsManager assetsManager = new AssetsManager();
                 //We don't really need file path
                 FileReader reader = new FileReader(".", stream);
-                assetsManager.LoadFile(".", reader);
+                assetsManager.LoadFileModified(".", reader);
                 List<AssetStudio.Object> objects = assetsManager.assetsFileList.FirstOrDefault().Objects;
                 switch (spineInfo.ModelSet)
                 {
@@ -469,31 +473,25 @@ namespace ArknightsResources.Utility
         //有的包Material文件中指向Texture2D的PathID为0,这里提供回退方式
         //回退方式的结果不一定准确
 
-        private static void FallbackGetIllustFromAbPacksInternal(byte[] assetBundleFile, string imageCodename, bool isSkin, out Image<Bgra32> rgb, out Image<Bgra32> alpha)
+        private static void FallbackGetIllustFromAbPacksInternal(IEnumerable<AssetStudio.Object> objects, string imageCodename, bool isSkin, out Image<Bgra32> rgb, out Image<Bgra32> alpha)
         {
             alpha = null;
             rgb = null;
 
-            using (MemoryStream stream = new MemoryStream(assetBundleFile))
-            {
-                AssetsManager assetsManager = new AssetsManager();
-                FileReader reader = new FileReader(".", stream);
-                assetsManager.LoadFile(".", reader);
-                IEnumerable<Texture2D> targets = from asset
-                                                 in assetsManager.assetsFileList.FirstOrDefault().Objects
-                                                             where FallbackIsTexture2DMatchOperatorImage(asset, imageCodename, isSkin)
-                                                             select (asset as Texture2D);
+            IEnumerable<Texture2D> targets = from asset
+                                             in objects
+                                             where FallbackIsTexture2DMatchOperatorImage(asset, imageCodename, isSkin)
+                                             select (asset as Texture2D);
 
-                foreach (var item in targets)
+            foreach (var item in targets)
+            {
+                if (item.m_Name.Contains("[alpha]"))
                 {
-                    if (item.m_Name.Contains("[alpha]"))
-                    {
-                        alpha = item.ConvertToImage();
-                    }
-                    else
-                    {
-                        rgb = item.ConvertToImage();
-                    }
+                    alpha = item.ConvertToImage();
+                }
+                else
+                {
+                    rgb = item.ConvertToImage();
                 }
             }
         }

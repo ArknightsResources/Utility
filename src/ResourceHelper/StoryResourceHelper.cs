@@ -7,31 +7,27 @@ using System.Threading.Tasks;
 namespace ArknightsResources.Utility
 {
     /// <summary>
-    /// 为ArknightsResources.Stories.Resources的资源访问提供帮助的类
+    /// 为ArknightsResources.Stories.Resources的资源访问提供帮助的结构
     /// </summary>
-    public class StoryResourceHelper : IStoryResourceGetter
+    public readonly struct StoryResourceHelper : IStoryResourceGetter
     {
         /// <summary>
         /// 当前ResourceHelper使用的<see cref="System.Resources.ResourceManager"/>
         /// </summary>
-#if NET7_0_OR_GREATER
-        public static ResourceManager ResourceManager { get; set; }
-#else
-        public ResourceManager ResourceManager { get; set; }
+        public ResourceManager ResourceManager { get; }
 
         /// <summary>
-        /// <seealso cref="StoryResourceHelper"/>的实例
+        /// 使用指定的参数构造<seealso cref="StoryResourceHelper"/>的新实例
         /// </summary>
-        public static readonly StoryResourceHelper Instance = new StoryResourceHelper();
-#endif
+        /// <param name="resourceManager">该ResourcesHelper使用的<see cref="System.Resources.ResourceManager"/></param>
+        public StoryResourceHelper(ResourceManager resourceManager)
+        {
+            ResourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
+        }
 
         /// <inheritdoc/>
         /// <exception cref="ArgumentException"/>
-#if NET7_0_OR_GREATER
-        public static string GetStoryRawText(string codename, CultureInfo cultureInfo)
-#else
         public string GetStoryRawText(string codename, CultureInfo cultureInfo)
-#endif
         {
             if (ResourceManager is null)
             {
@@ -56,22 +52,15 @@ namespace ArknightsResources.Utility
 
         /// <inheritdoc/>
         /// <exception cref="ArgumentException"/>
-#if NET7_0_OR_GREATER
-        public static async Task<string> GetStoryRawTextAsync(string codename, CultureInfo cultureInfo)
-#else
         public async Task<string> GetStoryRawTextAsync(string codename, CultureInfo cultureInfo)
-#endif
         {
-            return await Task.Run(() => GetStoryRawText(codename, cultureInfo));
+            StoryResourceHelper self = this;
+            return await Task.Run(() => self.GetStoryRawText(codename, cultureInfo));
         }
 
         /// <inheritdoc/>
         /// <exception cref="ArgumentException"/>
-#if NET7_0_OR_GREATER
-        public static byte[] GetVideo(string codename, CultureInfo cultureInfo = null)
-#else
         public byte[] GetVideo(string codename, CultureInfo cultureInfo = null)
-#endif
         {
             if (ResourceManager is null)
             {
@@ -109,13 +98,10 @@ namespace ArknightsResources.Utility
         }
 
         /// <inheritdoc/>
-#if NET7_0_OR_GREATER
-        public static async Task<byte[]> GetVideoAsync(string codename, CultureInfo cultureInfo = null)
-#else
         public async Task<byte[]> GetVideoAsync(string codename, CultureInfo cultureInfo = null)
-#endif
         {
-            return await Task.Run(() => GetVideo(codename, cultureInfo));
+            StoryResourceHelper self = this;
+            return await Task.Run(() => self.GetVideo(codename, cultureInfo));
         }
     }
 }
