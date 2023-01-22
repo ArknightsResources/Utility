@@ -16,6 +16,9 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using ArknightsResources.Operators.Models;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.ColorSpaces;
+using Fmod5Sharp.FmodTypes;
+using Fmod5Sharp;
 
 namespace ArknightsResources.Utility
 {
@@ -91,6 +94,56 @@ namespace ArknightsResources.Utility
         {
             GetSpineAnimationFromAbPacksInternal(assetBundleFile, spineInfo, out StreamReader atlas, out StreamReader skel, out byte[] image);
             return (atlas, skel, image);
+        }
+
+        /// <summary>
+        /// 从指定的AssetBundle包中获取干员的语音
+        /// </summary>
+        /// <param name="assetBundleFile">含有AssetBundle包内容的<seealso cref="byte"/>数组</param>
+        /// <param name="voiceItem">干员语音条目</param>
+        /// <returns></returns>
+        public static byte[] GetOperatorVoice(byte[] assetBundleFile, OperatorVoiceItem voiceItem)
+        {
+            return GetVoiceInfoInternal(assetBundleFile, voiceItem);
+        }
+
+        private static unsafe byte[] GetVoiceInfoInternal(byte[] assetBundleFile, OperatorVoiceItem voiceItem)
+        {
+            using (MemoryStream stream = new MemoryStream(assetBundleFile))
+            {
+                AssetsManager assetsManager = new AssetsManager();
+                //We don't really need file path
+                FileReader fileReader = new FileReader(".", stream);
+                assetsManager.LoadFileModified(".", fileReader);
+                List<AssetStudio.Object> objects = assetsManager.assetsFileList.FirstOrDefault().Objects;
+                AudioClip audioClip = GetFromObjects<AudioClip>(objects, (obj) =>
+                {
+                    if (obj is AudioClip clip)
+                    {
+                        return clip.m_Name == voiceItem.VoiceId;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                });
+
+                ResourceReader reader = audioClip.m_AudioData;
+                byte[] data = reader.GetData();
+                FmodSoundBank bank = FsbLoader.LoadFsbFromByteArray(data);
+                FmodSample sample = bank.Samples.FirstOrDefault();
+                bool success = sample.RebuildAsStandardFileFormat(out byte[] result, out string fileExtension);
+
+                if (success != true)
+                {
+                    throw new ArgumentException("无效的语音文件");
+                }
+
+                fileReader.Dispose();
+                assetsManager.Clear();
+
+                return result;
+            }
         }
 
         private static void GetIllustFromAbPacksInternal(byte[] assetBundleFile, string imageCodename, bool isSkin, out Image<Bgra32> rgb, out Image<Bgra32> alpha)

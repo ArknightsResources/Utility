@@ -25,7 +25,7 @@ namespace ArknightsResources.Utility
     /// <summary>
     /// 为ArknightsResources.Operators.Resources的资源访问提供帮助的结构
     /// </summary>
-    public readonly struct OperatorResourceHelper : IOperatorInfoGetter, IOperatorIllustrationGetter, IOperatorSpineAnimationGetter
+    public readonly struct OperatorResourceHelper : IOperatorInfoGetter, IOperatorIllustrationGetter, IOperatorSpineAnimationGetter, IOperatorVoiceGetter
     {
         /// <summary>
         /// 当前ResourceHelper使用的<see cref="System.Resources.ResourceManager"/>
@@ -377,7 +377,7 @@ namespace ArknightsResources.Utility
         /// <param name="illustInfo">干员的立绘信息</param>
         /// <returns>一个byte数组,其中包含了AssetBundle文件的数据</returns>
         /// <exception cref="ArgumentException"/>
-        public byte[] GetAssetBundleFile(OperatorIllustrationInfo illustInfo)
+        public byte[] GetIllustAssetBundleFile(OperatorIllustrationInfo illustInfo)
         {
             if (ResourceManager is null)
             {
@@ -402,6 +402,56 @@ namespace ArknightsResources.Utility
             }
 
             return value;
+        }
+
+        /// <inheritdoc/>
+        public byte[] GetOperatorVoice(OperatorVoiceItem voiceItem)
+        {
+            if (ResourceManager is null)
+            {
+                throw new InvalidOperationException($"此类的属性 {nameof(ResourceManager)} 不可为空");
+            }
+
+            string name;
+
+            switch (voiceItem.VoiceType)
+            {
+                default:
+                case OperatorVoiceType.ChineseMandarin:
+                    name = $"operator_voice_cn_{voiceItem.CharactorCodename}";
+                    break;
+                case OperatorVoiceType.ChineseRegional:
+                    name = $"operator_voice_cn_topolect_{voiceItem.CharactorCodename}";
+                    break;
+                case OperatorVoiceType.Japanese:
+                    name = $"operator_voice_ja_{voiceItem.CharactorCodename}";
+                    break;
+                case OperatorVoiceType.English:
+                    name = $"operator_voice_en_{voiceItem.CharactorCodename}";
+                    break;
+                case OperatorVoiceType.Korean:
+                    name = $"operator_voice_kr_{voiceItem.CharactorCodename}";
+                    break;
+                case OperatorVoiceType.Italian:
+                    name = $"operator_voice_ita_{voiceItem.CharactorCodename}";
+                    break;
+            }
+
+            byte[] value = (byte[])ResourceManager.GetObject(name);
+            if (value is null)
+            {
+                throw new ArgumentException($@"使用给定的参数""{voiceItem}""时找不到资源");
+            }
+
+            byte[] voice = AssetBundleHelper.GetOperatorVoice(value, voiceItem);
+            return voice;
+        }
+
+        /// <inheritdoc/>
+        public async Task<byte[]> GetOperatorVoiceAsync(OperatorVoiceItem voiceInfo)
+        {
+            OperatorResourceHelper self = this;
+            return await Task.Run(() => self.GetOperatorVoice(voiceInfo));
         }
 
         private static Operator GetOperatorInternal(string operatorName, CultureInfo cultureInfo, ResourceManager resourceManager)
