@@ -115,6 +115,9 @@ namespace AssetStudio
                             case ClassIDType.Texture2D:
                                 obj = new Texture2D(objectReader);
                                 break;
+                            case ClassIDType.AudioClip:
+                                obj = new AudioClip(objectReader);
+                                break;
                             default:
                                 obj = null;
                                 break;

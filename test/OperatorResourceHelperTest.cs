@@ -120,7 +120,7 @@ namespace ArknightsResources.Utility.Test
         public void GetAssetBundleFileTest()
         {
             OperatorResourceHelper operatorResourceHelper = new(OperatorResources.ResourceManager);
-            byte[] ab = operatorResourceHelper.GetAssetBundleFile(new OperatorIllustrationInfo(string.Empty, string.Empty, "amiya", OperatorType.Elite0, string.Empty));
+            byte[] ab = operatorResourceHelper.GetIllustAssetBundleFile(new OperatorIllustrationInfo(string.Empty, string.Empty, "amiya", OperatorType.Elite0, string.Empty));
             Assert.NotEmpty(ab);
         }
 
