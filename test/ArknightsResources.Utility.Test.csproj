@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ArknightsResources.Operators.Resources\src\ArknightsResources.Operators.Resources.csproj" />
     <ProjectReference Include="..\..\ArknightsResources.Stories.Resources\src\ArknightsResources.Stories.Resources.csproj" />
     <ProjectReference Include="..\src\ArknightsResources.Utility.csproj" />
   </ItemGroup>

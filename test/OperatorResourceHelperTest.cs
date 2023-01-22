@@ -1,4 +1,4 @@
-﻿using OperatorResources = ArknightsResources.Operators.Resources.Properties.Resources;
+﻿using OperatorResources = ArknightsResources.Operators.IllustResources.Properties.Resources;
 
 namespace ArknightsResources.Utility.Test
 {
