@@ -3,7 +3,6 @@
 #pragma warning disable IDE0063
 #pragma warning disable IDE0066
 #endif
-#pragma warning disable IDE0017
 
 using System;
 using AssetStudio;
