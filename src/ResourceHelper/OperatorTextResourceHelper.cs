@@ -293,6 +293,35 @@ namespace ArknightsResources.Utility
 #endif
             return operatorsDict;
         }
+
+        /// <summary>
+        /// 获取当前可用的全部语音信息
+        /// </summary>
+        /// <param name="cultureInfo"><see cref="OperatorVoiceInfo"/>对象所使用的语言</param>
+        /// <returns>一个Key为干员代号，Value为<see cref="OperatorVoiceInfo"/>数组的字典</returns>
+        public ImmutableDictionary<string, OperatorVoiceInfo[]> GetAllOperatorVoiceInfos(CultureInfo cultureInfo)
+        {
+            if (ResourceManager is null)
+            {
+                throw new InvalidOperationException($"此对象的属性 {nameof(ResourceManager)} 不可为空");
+            }
+
+            byte[] opVoices = (byte[])ResourceManager.GetObject("operator_voice_info", cultureInfo);
+            JsonSerializerOptions options = new JsonSerializerOptions()
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.Create(UnicodeRanges.All),
+                Converters = { new JsonStringEnumConverter() }
+            };
+#if NET6_0_OR_GREATER
+            //支持IL裁剪
+            StrOpVoiceInfoDictSourceGenerationContext context = new StrOpVoiceInfoDictSourceGenerationContext(options);
+            ImmutableDictionary<string, OperatorVoiceInfo[]> operatorsVoicesDict = JsonSerializer.Deserialize(opVoices, context.ImmutableDictionaryStringOperatorVoiceInfoArray);
+#else
+            ImmutableDictionary<string, OperatorVoiceInfo[]> operatorsVoicesDict = JsonSerializer.Deserialize<ImmutableDictionary<string, OperatorVoiceInfo[]>>(opVoices, options);
+#endif
+            return operatorsVoicesDict;
+        }
     }
 
 #if NET6_0_OR_GREATER
@@ -319,6 +348,12 @@ namespace ArknightsResources.Utility
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(ImmutableDictionary<string, string[]>))]
     internal partial class ImmutableDictionaryStrStrArraySourceGenerationContext : JsonSerializerContext
+    {
+    }
+
+    [JsonSourceGenerationOptions(WriteIndented = true)]
+    [JsonSerializable(typeof(ImmutableDictionary<string, OperatorVoiceInfo[]>))]
+    internal partial class StrOpVoiceInfoDictSourceGenerationContext : JsonSerializerContext
     {
     }
 #endif

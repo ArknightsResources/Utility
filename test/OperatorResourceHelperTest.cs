@@ -157,7 +157,7 @@ namespace ArknightsResources.Utility.Test
         [Fact]
         public void GetAllOperatorVoiceInfosTest()
         {
-            OperatorVoiceResourceHelper operatorResourceHelper = new(OperatorTextResources.ResourceManager);
+            OperatorTextResourceHelper operatorResourceHelper = new(OperatorTextResources.ResourceManager);
             ImmutableDictionary<string, OperatorVoiceInfo[]> mapping = operatorResourceHelper.GetAllOperatorVoiceInfos(AvailableCultureInfos.ChineseSimplifiedCultureInfo);
             Assert.NotEmpty(mapping);
         }
