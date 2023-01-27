@@ -16,5 +16,8 @@
 ## 安装
 目前尚未发布到NuGet，请通过[GitHub Packages](https://github.com/ArknightsResources/Utility/pkgs/nuget/ArknightsResources.Utility)下载安装。
 
+## 使用的开源项目
+* [Perfare/AssetStudio](https://github.com/Perfare/AssetStudio)(为了适应本项目的需要,我们对此项目进行了修改)
+
 ## 许可
 MIT 许可证
