@@ -1,4 +1,8 @@
-﻿#pragma warning disable IDE0075 // 简化条件表达式
+﻿#if NET6_0_OR_GREATER
+#pragma warning disable IDE0090
+#pragma warning disable IDE0062
+#endif
+#pragma warning disable IDE0075
 
 using ArknightsResources.Stories.Models;
 using ArknightsResources.Stories.Models.Commands;
