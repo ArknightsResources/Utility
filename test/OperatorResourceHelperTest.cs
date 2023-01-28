@@ -134,7 +134,7 @@ namespace ArknightsResources.Utility.Test
         public void GetVoiceAssetBundleFileTest()
         {
             OperatorVoiceResourceHelper operatorResourceHelper = new(OperatorCustomVoiceResources.ResourceManager);
-            byte[] ab = operatorResourceHelper.GetVoiceAssetBundleFile(new OperatorVoiceItem("chyue", "CN_025", "作战中1", "形不成形，意不在意，再去练练吧。", OperatorVoiceType.ChineseRegional));
+            byte[] ab = operatorResourceHelper.GetVoiceAssetBundleFile(new OperatorVoiceLine("chyue", "CN_025", "作战中1", "形不成形，意不在意，再去练练吧。", OperatorVoiceType.ChineseRegional));
             Assert.NotEmpty(ab);
         }
 
