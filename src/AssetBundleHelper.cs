@@ -101,12 +101,12 @@ namespace ArknightsResources.Utility
         /// <param name="assetBundleFile">含有AssetBundle包内容的<seealso cref="byte"/>数组</param>
         /// <param name="voiceItem">干员语音条目</param>
         /// <returns></returns>
-        public static byte[] GetOperatorVoice(byte[] assetBundleFile, OperatorVoiceItem voiceItem)
+        public static byte[] GetOperatorVoice(byte[] assetBundleFile, OperatorVoiceLine voiceItem)
         {
             return GetVoiceInfoInternal(assetBundleFile, voiceItem);
         }
 
-        private static unsafe byte[] GetVoiceInfoInternal(byte[] assetBundleFile, OperatorVoiceItem voiceItem)
+        private static unsafe byte[] GetVoiceInfoInternal(byte[] assetBundleFile, OperatorVoiceLine voiceItem)
         {
             using (MemoryStream stream = new MemoryStream(assetBundleFile))
             {

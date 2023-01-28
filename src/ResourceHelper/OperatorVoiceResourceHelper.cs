@@ -38,7 +38,7 @@ namespace ArknightsResources.Utility
         }
 
         /// <inheritdoc/>
-        public byte[] GetOperatorVoice(OperatorVoiceItem voiceItem)
+        public byte[] GetOperatorVoice(OperatorVoiceLine voiceItem)
         {
             byte[] value = GetVoiceAssetBundleFile(voiceItem);
             if (value is null)
@@ -51,7 +51,7 @@ namespace ArknightsResources.Utility
         }
 
         /// <inheritdoc/>
-        public async Task<byte[]> GetOperatorVoiceAsync(OperatorVoiceItem voiceItem)
+        public async Task<byte[]> GetOperatorVoiceAsync(OperatorVoiceLine voiceItem)
         {
             OperatorVoiceResourceHelper self = this;
             return await Task.Run(() => self.GetOperatorVoice(voiceItem));
@@ -63,7 +63,7 @@ namespace ArknightsResources.Utility
         /// <param name="voiceItem">干员的语音信息</param>
         /// <returns>一个byte数组,其中包含了AssetBundle文件的数据</returns>
         /// <exception cref="ArgumentException"/>
-        public byte[] GetVoiceAssetBundleFile(OperatorVoiceItem voiceItem)
+        public byte[] GetVoiceAssetBundleFile(OperatorVoiceLine voiceItem)
         {
             if (ResourceManager is null)
             {
