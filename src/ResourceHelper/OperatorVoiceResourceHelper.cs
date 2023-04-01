@@ -81,7 +81,7 @@ namespace ArknightsResources.Utility
                     name = $"operator_voice_cn_topolect_{voiceItem.CharactorCodename}";
                     break;
                 case OperatorVoiceType.Japanese:
-                    name = $"operator_voice_ja_{voiceItem.CharactorCodename}";
+                    name = $"operator_voice_jp_{voiceItem.CharactorCodename}";
                     break;
                 case OperatorVoiceType.English:
                     name = $"operator_voice_en_{voiceItem.CharactorCodename}";
@@ -91,6 +91,9 @@ namespace ArknightsResources.Utility
                     break;
                 case OperatorVoiceType.Italian:
                     name = $"operator_voice_ita_{voiceItem.CharactorCodename}";
+                    break;
+                case OperatorVoiceType.None:
+                    name = $"operator_voice_{voiceItem.CharactorCodename}";
                     break;
             }
 
