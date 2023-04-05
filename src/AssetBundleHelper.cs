@@ -15,7 +15,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using ArknightsResources.Operators.Models;
 using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.ColorSpaces;
 using Fmod5Sharp.FmodTypes;
 using Fmod5Sharp;
 
@@ -67,7 +66,8 @@ namespace ArknightsResources.Utility
         public static byte[] GetOperatorIllustration(byte[] assetBundleFile, string imageCodename, bool isSkin)
         {
             GetIllustFromAbPacksInternal(assetBundleFile, imageCodename, isSkin, out Image<Bgra32> rgb, out Image<Bgra32> alpha);
-            return ImageHelper.ProcessImage(rgb, alpha);
+            byte[] image = ImageHelper.ProcessImage(rgb, alpha);
+            return image;
         }
 
         /// <summary>
