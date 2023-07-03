@@ -24,7 +24,8 @@
     <ProjectReference Include="..\..\ArknightsResources.Operators.IllustResources\src\ArknightsResources.Operators.IllustResources.csproj" />
     <ProjectReference Include="..\..\ArknightsResources.Operators.TextResources\src\ArknightsResources.Operators.TextResources.csproj" />
     <ProjectReference Include="..\..\ArknightsResources.Operators.VoiceResources\src\ArknightsResources.Operators.VoiceResources.Custom\ArknightsResources.Operators.VoiceResources.Custom.csproj" />
-    <ProjectReference Include="..\..\ArknightsResources.Stories.Resources\src\ArknightsResources.Stories.Resources.csproj" />
+    <ProjectReference Include="..\..\ArknightsResources.Stories.TextResources\src\ArknightsResources.Stories.TextResources.csproj" />
+    <ProjectReference Include="..\..\ArknightsResources.Stories.VideoResources\src\ArknightsResources.Stories.VideoResources.csproj" />
     <ProjectReference Include="..\src\ArknightsResources.Utility.csproj" />
   </ItemGroup>
 
