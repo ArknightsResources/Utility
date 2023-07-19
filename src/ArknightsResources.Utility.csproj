@@ -16,7 +16,7 @@
     <PackageIcon>icon.png</PackageIcon>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IsTrimmable>true</IsTrimmable>
-    <Version>0.2.4.0-alpha</Version>
+    <Version>0.2.5.0-alpha</Version>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
