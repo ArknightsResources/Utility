@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace ArknightsResources.Utility
+﻿namespace ArknightsResources.Utility
 {
     internal static unsafe class InternalNativeMemory
     {
