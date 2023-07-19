@@ -119,92 +119,8 @@ namespace ArknightsResources.Utility
                     }
                     else
                     {
-                        //匹配Decision
-                        Match matchDecison = GetMatchByPattern(strToAnalyse, @"\[Decision\(options=""([\s\S]*)"", values=""([\s\S]*)""\)\]");
-                        if (matchDecison.Success)
-                        {
-                            #region MatchDecision
-                            string[] options = matchDecison.Groups[1].Value.Split(';');
-                            string[] values = matchDecison.Groups[2].Value.Split(';');
-
-                            //键是选项(如“结果怎么样？”“......”“我的脑袋又热又胀，很不舒服。”)
-                            //值为各选项分支的命令(如”[name="凯尔希"]并没有什么新的进展。“)
-                            Dictionary<string, StoryCommand[]> result = new Dictionary<string, StoryCommand[]>(values.Length);
-
-                            //当前要处理的选项
-                            List<string> currentKeys = null;
-
-                            //用于临时放置各选项分支命令
-                            List<StoryCommand> temp = new List<StoryCommand>(5);
-                            while (true)
-                            {
-                                string str = ReadText();
-                                Match matchPredicate = GetMatchByPattern(str, @"\[Predicate\(references=""([\s\S]*)""\)\]");
-                                if (matchPredicate.Success)
-                                {
-                                    string[] references = matchPredicate.Groups[1].Value.Split(';');
-                                    if (references.SequenceEqual(values))
-                                    {
-                                        /*
-                                         * 这种情况的例子:[Decision(options="XXX;YYY;ZZZ", values="1;2;3")]
-                                         * .......
-                                         * [Predicate(references="1;2;3")]
-                                        */
-
-                                        if (result.Count == 0)
-                                        {
-                                            //这种情况相当于Decision不对下面的剧情文本产生影响,因此这里全部填充为无操作
-                                            foreach (var item in options)
-                                            {
-                                                result[item] = new StoryCommand[] { new NoOperationCommand() };
-                                            }
-                                        }
-                                        else
-                                        {
-                                            foreach (var item in currentKeys)
-                                            {
-                                                result[item] = temp.ToArray();
-                                                temp.Clear();
-                                            }
-                                        }
-
-                                        break;
-                                    }
-
-                                    if (currentKeys is null)
-                                    {
-                                        InitCurrentKeys(out currentKeys, options, references);
-                                    }
-                                    else
-                                    {
-                                        temp.Insert(0, new ShowDialogCommand());
-                                        foreach (string item in currentKeys)
-                                        {
-                                            result[item] = temp.ToArray();
-                                        }
-                                        temp.Clear();
-                                        InitCurrentKeys(out currentKeys, options, references);
-                                    }
-                                    continue;
-                                }
-                                else
-                                {
-                                    //解析每一行文本所代表的命令
-                                    StoryCommand storyCommand = AnalyseCommandText(str);
-                                    temp.Add(storyCommand);
-                                }
-                            }
-
-                            DecisionCommand decisionCommand = new DecisionCommand(result);
-                            storyCommands.Add(decisionCommand);
-                            continue;
-                            #endregion
-                        }
-                        else
-                        {
-                            StoryCommand storyCommand = AnalyseCommandText(strToAnalyse);
-                            storyCommands.Add(storyCommand);
-                        }
+                        StoryCommand storyCommand = AnalyseCommandText(strToAnalyse);
+                        storyCommands.Add(storyCommand);
                     }
                 }
                 else
@@ -222,16 +138,6 @@ namespace ArknightsResources.Utility
 
             StoryScene scene = new StoryScene(storyCommands.ToArray(), isSkippable, isAutoable, fitMode, comment);
             return scene;
-
-            void InitCurrentKeys(out List<string> currentKey, string[] options, string[] references)
-            {
-                currentKey = new List<string>(options.Length);
-                foreach (var item in references)
-                {
-                    int index = int.Parse(item);
-                    currentKey.Add(options[index - 1]);
-                }
-            }
         }
 
         /// <summary>
@@ -400,6 +306,111 @@ namespace ArknightsResources.Utility
         private StoryCommand AnalyseCommandText(string strToAnalyse)
         {
             // TODO: Add more...
+            #region MatchDecision
+            {
+                Match matchDecison = GetMatchByPattern(strToAnalyse, @"\[Decision\(options=""([\s\S]*)"", values=""([\s\S]*)""\)\]");
+                if (matchDecison.Success)
+                {
+                    #region MatchDecision
+                    string[] options = matchDecison.Groups[1].Value.Split(';');
+                    string[] values = matchDecison.Groups[2].Value.Split(';');
+
+                    //键是选项(如“结果怎么样？”“......”“我的脑袋又热又胀，很不舒服。”)
+                    //值为各选项分支的命令(如”[name="凯尔希"]并没有什么新的进展。“)
+                    Dictionary<string, StoryCommand[]> result = new Dictionary<string, StoryCommand[]>(values.Length);
+
+                    //当前要处理的选项
+                    List<string> currentKeys = null;
+
+                    //用于临时放置各选项分支命令
+                    List<StoryCommand> temp = new List<StoryCommand>(5);
+                    while (true)
+                    {
+                        if (options.Length < values.Length)
+                        {
+                            //选项的数量居然小于各选项分支的数量，这是不正常的
+                            //但是大坑比yj有时真能写出这种问题文件来，大概是序列化器有问题（
+                            //这种情况相当于Decision不对下面的剧情文本产生影响,因此这里全部填充为无操作
+                            foreach (var item in options)
+                            {
+                                result[item] = new StoryCommand[] { new NoOperationCommand() };
+                            }
+                            break;
+                        }
+
+                        string str = ReadText();
+                        Match matchPredicate = GetMatchByPattern(str, @"\[Predicate\(references=""([\s\S]*)""\)\]");
+                        if (matchPredicate.Success)
+                        {
+                            string[] references = matchPredicate.Groups[1].Value.Split(';');
+                            if (references.SequenceEqual(values))
+                            {
+                                /*
+                                 * 这种情况的例子:[Decision(options="XXX;YYY;ZZZ", values="1;2;3")]
+                                 * .......
+                                 * [Predicate(references="1;2;3")]
+                                */
+
+                                if (result.Count == 0)
+                                {
+                                    //这种情况相当于Decision不对下面的剧情文本产生影响,因此这里全部填充为无操作
+                                    foreach (var item in options)
+                                    {
+                                        result[item] = new StoryCommand[] { new NoOperationCommand() };
+                                    }
+                                }
+                                else
+                                {
+                                    foreach (var item in currentKeys)
+                                    {
+                                        result[item] = temp.ToArray();
+                                        temp.Clear();
+                                    }
+                                }
+
+                                break;
+                            }
+
+                            if (currentKeys is null)
+                            {
+                                InitCurrentKeys(out currentKeys, options, references);
+                            }
+                            else
+                            {
+                                temp.Insert(0, new ShowDialogCommand());
+                                foreach (string item in currentKeys)
+                                {
+                                    result[item] = temp.ToArray();
+                                }
+                                temp.Clear();
+                                InitCurrentKeys(out currentKeys, options, references);
+                            }
+                            continue;
+                        }
+                        else
+                        {
+                            //解析每一行文本所代表的命令
+                            StoryCommand storyCommand = AnalyseCommandText(str);
+                            temp.Add(storyCommand);
+                        }
+                    }
+
+                    DecisionCommand decisionCommand = new DecisionCommand(result);
+                    return decisionCommand;
+                    #endregion
+                }
+
+                void InitCurrentKeys(out List<string> currentKey, string[] options, string[] references)
+                {
+                    currentKey = new List<string>(options.Length);
+                    foreach (var item in references)
+                    {
+                        int index = int.Parse(item);
+                        currentKey.Add(options[index - 1]);
+                    }
+                }
+            }
+            #endregion
             #region MatchStopMusic
             {
                 var matchStopMusic = GetMatchByPattern(strToAnalyse, @"\[stopmusic\(([\s\S]*)\)\]");
