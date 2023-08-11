@@ -36,6 +36,7 @@ namespace ArknightsResources.Utility.Test
         }
 
         [Fact]
+        [Obsolete("在未来版本中，将删除此测试用例")]
         public async void GetOperatorIllustrationReturnImageTest()
         {
             OperatorTextResourceHelper textResourceHelper = new(OperatorTextResources.ResourceManager);
