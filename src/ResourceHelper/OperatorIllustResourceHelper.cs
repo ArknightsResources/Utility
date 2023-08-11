@@ -62,6 +62,7 @@ namespace ArknightsResources.Utility
         /// <exception cref="ArgumentException"/>
         /// <exception cref="MissingManifestResourceException"/>
         /// <exception cref="MissingSatelliteAssemblyException"/>
+        [Obsolete("不推荐使用此方法，在未来版本中，将删除此方法")]
         public Image<Bgra32> GetOperatorIllustrationReturnImage(OperatorIllustrationInfo illustInfo)
         {
             byte[] abPack = GetIllustAssetBundleFile(illustInfo);
@@ -82,6 +83,7 @@ namespace ArknightsResources.Utility
         /// <exception cref="ArgumentException"/>
         /// <exception cref="MissingManifestResourceException"/>
         /// <exception cref="MissingSatelliteAssemblyException"/>
+        [Obsolete("不推荐使用此方法，在未来版本中，将删除此方法")]
         public async Task<Image<Bgra32>> GetOperatorIllustrationReturnImageAsync(OperatorIllustrationInfo illustInfo)
         {
             OperatorIllustResourceHelper self = this;

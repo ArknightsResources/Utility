@@ -65,8 +65,7 @@ namespace ArknightsResources.Utility
         /// <returns>包含干员立绘的<seealso cref="byte"/>数组</returns>
         public static byte[] GetOperatorIllustration(byte[] assetBundleFile, string imageCodename, bool isSkin)
         {
-            GetIllustFromAbPacksInternal(assetBundleFile, imageCodename, isSkin, out Image<Bgra32> rgb, out Image<Bgra32> alpha);
-            byte[] image = ImageHelper.ProcessImage(rgb, alpha);
+            byte[] image = GetIllustFromAbPacksInternal(assetBundleFile, imageCodename, isSkin);
             return image;
         }
 
@@ -77,10 +76,13 @@ namespace ArknightsResources.Utility
         /// <param name="imageCodename">干员立绘的图像代号</param>
         /// <param name="isSkin">指示干员立绘类型是否为皮肤</param>
         /// <returns>包含干员立绘的<seealso cref="Image{Bgra32}"/></returns>
+        [Obsolete("不推荐使用此方法，在未来版本中，将删除此方法")]
         public static Image<Bgra32> GetOperatorIllustrationReturnImage(byte[] assetBundleFile, string imageCodename, bool isSkin)
         {
-            GetIllustFromAbPacksInternal(assetBundleFile, imageCodename, isSkin, out Image<Bgra32> rgb, out Image<Bgra32> alpha);
-            return ImageHelper.ProcessImageReturnImage(rgb, alpha);
+            byte[] image = GetIllustFromAbPacksInternal(assetBundleFile, imageCodename, isSkin);
+            //非常低效...但为了新的实现，不得不这样做
+            //因此我们弃用了这个方法
+            return Image.Load<Bgra32>(image);
         }
 
         /// <summary>
@@ -103,10 +105,10 @@ namespace ArknightsResources.Utility
         /// <returns></returns>
         public static byte[] GetOperatorVoice(byte[] assetBundleFile, OperatorVoiceLine voiceItem)
         {
-            return GetVoiceInfoInternal(assetBundleFile, voiceItem);
+            return GetVoiceInternal(assetBundleFile, voiceItem);
         }
 
-        private static unsafe byte[] GetVoiceInfoInternal(byte[] assetBundleFile, OperatorVoiceLine voiceItem)
+        private static unsafe byte[] GetVoiceInternal(byte[] assetBundleFile, OperatorVoiceLine voiceItem)
         {
             using (MemoryStream stream = new MemoryStream(assetBundleFile))
             {
@@ -145,16 +147,35 @@ namespace ArknightsResources.Utility
             }
         }
 
-        private static void GetIllustFromAbPacksInternal(byte[] assetBundleFile, string imageCodename, bool isSkin, out Image<Bgra32> rgb, out Image<Bgra32> alpha)
+        private static byte[] GetIllustFromAbPacksInternal(byte[] assetBundleFile, string imageCodename, bool isSkin)
         {
-            using (MemoryStream stream = new MemoryStream(assetBundleFile))
+            using (MemoryStream abPackStream = new MemoryStream(assetBundleFile))
             {
                 AssetsManager assetsManager = new AssetsManager();
                 //We don't really need file path
-                FileReader reader = new FileReader(".", stream);
-                assetsManager.LoadFileModified(".", reader);
+                FileReader fileReader = new FileReader(".", abPackStream);
+                assetsManager.LoadFileModified(".", fileReader);
                 List<AssetStudio.Object> objects = assetsManager.assetsFileList.FirstOrDefault().Objects;
-                Material material = GetFromObjects<Material>(objects, (obj) => IsMaterialMatchOperatorIllust(obj, imageCodename, isSkin));
+                Material material = GetFromObjects<Material>(objects, (obj) => IsMaterialMatchOperatorIllust(obj, imageCodename, isSkin), true);
+                if (material is null)
+                {
+                    //找不到Material，说明此包已包含合并好的立绘文件，直接获取即可
+                    Texture2D texture2D = GetFromObjects<Texture2D>(objects, obj => IsTexture2DMatchOperatorIllust(obj, imageCodename));
+
+                    Image<Bgra32> image = texture2D.ConvertToImage();
+
+                    using (MemoryStream stream = new MemoryStream(image.Height * image.Width * 4))
+                    {
+                        image.SaveAsPng(stream);
+
+                        image.Dispose();
+
+                        return stream.ToArray();
+                    }
+                }
+
+                Image<Bgra32> rgb;
+                Image<Bgra32> alpha;
 
                 KeyValuePair<string, UnityTexEnv>[] m_TexEnvs = material.m_SavedProperties.m_TexEnvs;
                 long rgbPath = GetPathIDFromKeyValuePairs(m_TexEnvs, "_MainTex");
@@ -172,13 +193,15 @@ namespace ArknightsResources.Utility
                     {
                         throw new ArgumentException("无法从包中解析出立绘文件");
                     }
-                    return;
+                    return ImageHelper.ProcessImage(rgb, alpha);
                 }
                 rgb = rgbTexture2D.ConvertToImage();
                 alpha = alphaTexture2D.ConvertToImage();
 
-                reader.Dispose();
+                fileReader.Dispose();
                 assetsManager.Clear();
+
+                return ImageHelper.ProcessImage(rgb, alpha);
             }
         }
 
@@ -227,6 +250,27 @@ namespace ArknightsResources.Utility
 
                 Match match = GetMatchByPattern(material.m_Name, pattern);
                 return match.Success;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private static bool IsTexture2DMatchOperatorIllust(AssetStudio.Object obj, string imageCodename)
+        {
+            if (obj is Texture2D texture2D)
+            {
+                if (imageCodename.Contains('+'))
+                {
+                    imageCodename = imageCodename.Replace("+", @"\+");
+                }
+
+                string pattern = $@"char_[\d]*_({imageCodename})(?!b)";
+
+                Match match = GetMatchByPattern(texture2D.m_Name, pattern);
+
+                return match.Success && string.IsNullOrEmpty(match.Groups[2].Value);
             }
             else
             {
@@ -494,7 +538,45 @@ namespace ArknightsResources.Utility
             void* memPtrData = InternalNativeMemory.Alloc(count);
             Span<byte> data = new Span<byte>(memPtrData, count);
 
-            ImageHelper.DecodeETC1(originData, memPtrData, m_Texture2D.m_Width, m_Texture2D.m_Height);
+            switch (m_Texture2D.m_TextureFormat)
+            {
+                case TextureFormat.ETC_RGB4:
+                case TextureFormat.ETC_RGB4_3DS:
+                    ImageHelper.DecodeETC1(originData, memPtrData, m_Texture2D.m_Width, m_Texture2D.m_Height);
+                    break;
+                case TextureFormat.ASTC_RGB_4x4:
+                case TextureFormat.ASTC_RGBA_4x4:
+                case TextureFormat.ASTC_HDR_4x4:
+                    ImageHelper.DecodeASTC(originData, memPtrData, m_Texture2D.m_Width, m_Texture2D.m_Height, 4);
+                    break;
+                case TextureFormat.ASTC_RGB_5x5:
+                case TextureFormat.ASTC_RGBA_5x5:
+                case TextureFormat.ASTC_HDR_5x5:
+                    ImageHelper.DecodeASTC(originData, memPtrData, m_Texture2D.m_Width, m_Texture2D.m_Height, 5);
+                    break;
+                case TextureFormat.ASTC_RGB_6x6:
+                case TextureFormat.ASTC_RGBA_6x6:
+                case TextureFormat.ASTC_HDR_6x6:
+                    ImageHelper.DecodeASTC(originData, memPtrData, m_Texture2D.m_Width, m_Texture2D.m_Height, 6);
+                    break;
+                case TextureFormat.ASTC_RGB_8x8:
+                case TextureFormat.ASTC_RGBA_8x8:
+                case TextureFormat.ASTC_HDR_8x8:
+                    ImageHelper.DecodeASTC(originData, memPtrData, m_Texture2D.m_Width, m_Texture2D.m_Height, 8);
+                    break;
+                case TextureFormat.ASTC_RGB_10x10:
+                case TextureFormat.ASTC_RGBA_10x10:
+                case TextureFormat.ASTC_HDR_10x10:
+                    ImageHelper.DecodeASTC(originData, memPtrData, m_Texture2D.m_Width, m_Texture2D.m_Height, 10);
+                    break;
+                case TextureFormat.ASTC_RGB_12x12:
+                case TextureFormat.ASTC_RGBA_12x12:
+                case TextureFormat.ASTC_HDR_12x12:
+                    ImageHelper.DecodeASTC(originData, memPtrData, m_Texture2D.m_Width, m_Texture2D.m_Height, 12);
+                    break;
+                default:
+                    throw new NotImplementedException($"无法解码图像，因为未实现 {m_Texture2D.m_TextureFormat} 的解码器");
+            }
 
             try
             {
